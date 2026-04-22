@@ -1,0 +1,1211 @@
+{
+  "name": "Xenithpay Template",
+  "nodes": [
+    {
+      "parameters": {
+        "action": "generate",
+        "dataPropertyName": "QRIdempotencyKey"
+      },
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        -704,
+        -480
+      ],
+      "id": "7b6f503d-2c8f-4675-8728-9d769bcb6c64",
+      "name": "Crypto: Generate Payin Idempotency Key"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openapi.sandbox.xenithpay.com/v1/payins",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Xenith-Request-Timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "name": "Xenith-Request-Signature",
+              "value": "={{ $json.signature }}"
+            },
+            {
+              "name": "X-Idempotency-Key",
+              "value": "={{ $json.QRIdempotencyKey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -480,
+        -480
+      ],
+      "id": "b030f96d-ac30-4331-a3c1-99cb694c9834",
+      "name": "HTTP: Create Xenith Payin",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "oiicjXYlrI4Wv2fB",
+          "name": "Xenith-Api-Key"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "35d36342-76e4-4242-8897-52333c22f746",
+              "leftValue": "={{ $json.paymentMethod=== \"QR_CODE\" }}",
+              "rightValue": "null",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -256,
+        -480
+      ],
+      "id": "2a871e5f-b9d7-49a6-8a4e-950039b15af8",
+      "name": "Check: Has QRIS Payment Option?"
+    },
+    {
+      "parameters": {
+        "url": "https://api.qrserver.com/v1/create-qr-code/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "size",
+              "value": "400x400"
+            },
+            {
+              "name": "data",
+              "value": "={{ $json.paymentCode }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -32,
+        -544
+      ],
+      "id": "3dc04eaf-5c4c-4d90-abf7-54fb73b8f226",
+      "name": "HTTP: Generate QRIS Image",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\n\nconst body = {\n      initiatedAmount: $('Form: Create Invoice').first().json.initiated_amount,\n      currency: 'IDR',\n      paymentMethod: $input.first().json.method,\n      paymentChannel: $input.first().json.channel,\n      customerPhoneNumber: $('Form: Create Invoice').first().json.phone_number.toString(),\n      referenceCode: $('Form: Create Invoice').first().json.referenceCode,\n      customerReference: $('Form: Create Invoice').first().json.email,\n      customerName: $('Form: Create Invoice').first().json.customerName,\n      description: $('Form: Create Invoice').first().json.description,\n      callbackUrl: 'https://harlee-phylogenetic-nonequivocally.ngrok-free.dev/webhook/xenith-payin-sandbox',\n      redirectUrl: \"https://www.weselaja.com/\",\n    };\n\nconst method = \"POST\";\nconst uri = \"/v1/payins\";\nconst timestamp = new Date().toISOString();\nconst signaturePayload = `${method}\\n${uri}\\n${timestamp}\\n${JSON.stringify(body)}`;\n\nreturn {\n  json:{signaturePayload, timestamp, body}\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1152,
+        -480
+      ],
+      "id": "0bc9f5d1-900f-448d-b0a6-d755cc5b5951",
+      "name": "Code: Build Xenith Payin Requests"
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "value": "={{ $json.signaturePayload }}",
+        "dataPropertyName": "signature",
+        "encoding": "base64"
+      },
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        -928,
+        -480
+      ],
+      "id": "ddad7f32-c175-4f8a-83d3-1a461e738020",
+      "name": "Crypto: Create Xenith Payin Signature",
+      "credentials": {
+        "crypto": {
+          "id": "qlnI2lE8OOmNnjNE",
+          "name": "Xenith-Secret-Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Create Invoice\n",
+        "height": 576,
+        "width": 2236
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1808,
+        -688
+      ],
+      "typeVersion": 1,
+      "id": "65bf2000-8550-4fd8-b9c2-6b7a83df99f3",
+      "name": "Note: Create Invoice Flow"
+    },
+    {
+      "parameters": {
+        "formTitle": "Create Invoice",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Customer Name",
+              "fieldName": "customerName"
+            },
+            {
+              "fieldLabel": "Customer Email",
+              "fieldName": "email"
+            },
+            {
+              "fieldLabel": "Jumlah Dana",
+              "fieldType": "number",
+              "fieldName": "initiated_amount"
+            },
+            {
+              "fieldLabel": "Metode Pembayaran",
+              "fieldType": "dropdown",
+              "fieldName": "name",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "QRIS"
+                  },
+                  {
+                    "option": "VA BANK MANDIRI"
+                  },
+                  {
+                    "option": "VA BANK RAKYAT INDONESIA"
+                  },
+                  {
+                    "option": "DANA"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Nomor Telepon/Hp",
+              "fieldType": "number",
+              "fieldName": "phone_number"
+            },
+            {
+              "fieldLabel": "Reference Code",
+              "fieldName": "referenceCode"
+            },
+            {
+              "fieldLabel": "description",
+              "fieldName": "description"
+            }
+          ]
+        },
+        "options": {
+          "path": "create-payin"
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        -1600,
+        -480
+      ],
+      "id": "a1604672-3a2b-4671-bc53-914fe375bbc4",
+      "name": "Form: Create Invoice",
+      "webhookId": "ec5f73fd-168a-458f-9950-d56db5efee9e"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "payment_channels",
+          "mode": "list",
+          "cachedResultName": "payment_channels"
+        },
+        "limit": 1,
+        "where": {
+          "values": [
+            {
+              "column": "name",
+              "value": "={{ $json.name }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1376,
+        -480
+      ],
+      "id": "4418b947-1a64-41c9-8e33-5eea9fd4db47",
+      "name": "Postgres: Get Payment Channel",
+      "credentials": {
+        "postgres": {
+          "id": "Ea2k4mpjj6wH5jn7",
+          "name": "onlysubs"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "admin@xenithpay.com",
+        "toEmail": "={{ $('Form: Create Invoice').item.json.email }}",
+        "subject": "=Invoice Pembayaran • {{ $json.customerName }} • Rp {{ new Intl.NumberFormat('id-ID').format(Number($json.initiatedAmount)) }}",
+        "html": "=<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Invoice</title>\n</head>\n<body style=\"font-family: Arial, sans-serif; background-color:#f6f6f6; padding:20px;\">\n  \n  <div style=\"max-width:600px; margin:auto; background:#ffffff; padding:24px; border-radius:10px;\">\n    \n    <h2 style=\"color:#333; margin-bottom:5px;\">Invoice</h2>\n    <p style=\"color:#777; font-size:14px;\">Detail transaksi Anda</p>\n\n    <!-- ID Transaksi + keterangan -->\n    <div style=\"margin-top:10px;\">\n      <p style=\"font-size:13px; color:#999; margin:0;\">\n        Transaction ID: <strong>{{$json.id}}</strong>\n      </p>\n      <p style=\"font-size:12px; color:#bbb; margin-top:3px;\">\n        Gunakan ID ini untuk simulate payin di environment sandbox.\n      </p>\n    </div>\n\n    <hr style=\"margin:20px 0;\">\n\n    <p><strong>Customer:</strong> {{$json.customerName}}</p>\n\n    <p><strong>Payment Channel:</strong> \n      {{ $('Postgres: Get Payment Channel').item.json.name }}\n    </p>\n\n    <table style=\"width:100%; border-collapse:collapse; margin-top:20px;\">\n      <tr>\n        <td style=\"padding:10px 0;\">Amount</td>\n        <td style=\"text-align:right;\">\n          Rp {{ new Intl.NumberFormat('id-ID').format(Number($json.initiatedAmount)) }}\n        </td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 0;\">Fee</td>\n        <td style=\"text-align:right;\">\n          Rp {{ new Intl.NumberFormat('id-ID').format(Number($json.feeAmount || 0)) }}\n        </td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 0; border-top:1px solid #eee;\"><strong>Total</strong></td>\n        <td style=\"text-align:right; border-top:1px solid #eee;\">\n          <strong>\n            Rp {{ new Intl.NumberFormat('id-ID').format(\n              Number($json.initiatedAmount) + Number($json.feeAmount || 0)\n            ) }}\n          </strong>\n        </td>\n      </tr>\n    </table>\n\n    <!-- Conditional Payment -->\n    <div style=\"text-align:center; margin-top:20px;\">\n      \n      {{\n        $json.paymentChannel?.toUpperCase() === 'QRIS'\n        ? `<div>\n            <p style=\"font-size:14px; color:#555; margin-bottom:10px;\">\n              Scan QRIS untuk pembayaran\n            </p>\n            <img src=\"cid:data\" alt=\"QRIS\" style=\"max-width:250px; width:100%; border-radius:8px;\" />\n          </div>`\n        : `<div>\n            <p style=\"font-size:14px; color:#555; margin-bottom:8px;\">\n              Kode Pembayaran\n            </p>\n            <p style=\"font-size:20px; font-weight:bold; letter-spacing:2px;\">\n              ${$json.paymentCode || '-'}\n            </p>\n          </div>`\n      }}\n\n    </div>\n\n    <div style=\"margin-top:20px;\">\n      <strong>Description:</strong>\n      <p style=\"margin-top:5px; color:#555;\">\n        {{$json.description || '-'}}\n      </p>\n    </div>\n\n    <hr style=\"margin:25px 0;\">\n\n    <p style=\"font-size:14px; color:#666;\">\n      Terima kasih atas transaksi Anda.\n    </p>\n\n  </div>\n\n</body>\n</html>",
+        "options": {
+          "appendAttribution": false,
+          "attachments": "data"
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        192,
+        -480
+      ],
+      "id": "8a7c553f-7618-4de1-a02d-b008ab0b3876",
+      "name": "Email: Send Invoice Payment Options",
+      "webhookId": "520bc1c5-2a76-4e78-b23f-98113fc8dcc6",
+      "credentials": {
+        "smtp": {
+          "id": "48zOIX1wzn6KU8y8",
+          "name": "onlysubs"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Simulate Payin\n",
+        "height": 576,
+        "width": 2236
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1808,
+        -16
+      ],
+      "typeVersion": 1,
+      "id": "91e9257f-fd29-4218-b909-203e792c8a94",
+      "name": "Note: Simulate Payin Flow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const method = \"POST\"\nconst uri = \"/v1/simulator/transaction\"\nconst timestamp = new Date().toISOString()\nconst body = {\n    transactionId:$input.first().json.payin_id,\n    transactionCategory: \"payins\",\n    transactionStatus: $input.first().json.transaction_status,\n}\nconst bodyString = JSON.stringify(body)\nconst signaturePayload = `${method}\\n${uri}\\n${timestamp}\\n${bodyString}`;\n\nreturn {timestamp, signaturePayload, body};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1392,
+        192
+      ],
+      "id": "5feb38fe-35aa-41bf-b724-74625faaa338",
+      "name": "Code: Build Simulate Payin Payload"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openapi.sandbox.xenithpay.com/v1/simulator/transaction",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Xenith-Request-Timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "name": "Xenith-Request-Signature",
+              "value": "={{ $json.signature }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -944,
+        192
+      ],
+      "id": "0e621b2c-c209-4933-b2dd-601f5f42cc97",
+      "name": "HTTP: Simulate Xenith Payin Transaction",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "oiicjXYlrI4Wv2fB",
+          "name": "Xenith-Api-Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "value": "={{ $json.signaturePayload }}",
+        "dataPropertyName": "signature",
+        "encoding": "base64"
+      },
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        -1168,
+        192
+      ],
+      "id": "3fe439ef-1d18-4e41-922a-a319e94a53f6",
+      "name": "Crypto: Create Simulate Payin Signature",
+      "credentials": {
+        "crypto": {
+          "id": "qlnI2lE8OOmNnjNE",
+          "name": "Xenith-Secret-Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Simulate Payin",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Pay In ID",
+              "fieldName": "payin_id"
+            },
+            {
+              "fieldLabel": "Transaction Status",
+              "fieldType": "dropdown",
+              "fieldName": "transaction_status",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "SUCCESS"
+                  },
+                  {
+                    "option": "FAILED"
+                  },
+                  {
+                    "option": "EXPIRED"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {
+          "path": "simulate-payin"
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        -1584,
+        192
+      ],
+      "id": "08eb5f6d-fcba-4ce6-9958-08a827075c32",
+      "name": "Form: Simulate Payin",
+      "webhookId": "99ef200a-f422-411f-9efe-e502b769b598"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "xenith-payin-sandbox",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1584,
+        832
+      ],
+      "id": "ed3a5251-71a7-4b27-aef4-f81ac2443747",
+      "name": "Webhook: Xenith Payin Callback",
+      "webhookId": "9670673a-82dc-48ca-8afc-001d2e970eca"
+    },
+    {
+      "parameters": {
+        "jsCode": "const method = \"POST\"\nconst uri = \"/webhook/xenith-payin-sandbox\";\n\nreturn {\n          method,\n          uri,\n          body:$json.body,\n          xenithSignature:$input.first().json.headers['x-xenith-signature'],\n          xenithTimestamp:$input.first().json.headers['x-xenith-timestamp'],\n       }"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1360,
+        832
+      ],
+      "id": "ab00cd04-e727-450e-b475-bf31f3edf8b5",
+      "name": "Code: Build Signature Validation Payload"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fe4e53e4-aaa4-48f6-aed9-206dd72a089a",
+              "leftValue": "={{ $json.xenithSignature }}",
+              "rightValue": "={{ $json.expected_signature }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -912,
+        832
+      ],
+      "id": "16a885be-89bf-43b1-af96-351366a035fa",
+      "name": "Check: Xenith Signature Valid?"
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "value": "={{`${$json.method}\\\\n${$json.uri}\\\\n${\n     $json.body.toJsonString()  || \"\"\n    }\\\\n${$json.body.timestamp}`}}",
+        "dataPropertyName": "expected_signature",
+        "encoding": "base64"
+      },
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        -1136,
+        832
+      ],
+      "id": "2e58520e-9bfc-40c6-ba99-ef1f525d3d50",
+      "name": "Crypto: Create Expected Xenith Signature",
+      "credentials": {
+        "crypto": {
+          "id": "xrqVdMFvQVdThaBu",
+          "name": "xenith-web-signature-secret"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Callback Payin\n",
+        "height": 576,
+        "width": 2236
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1808,
+        640
+      ],
+      "typeVersion": 1,
+      "id": "2bf40ad0-d279-438a-86e5-d55b0e2768ab",
+      "name": "Note: Callback Payin Flow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const method = \"POST\";\nconst uri = \"/v1/payouts\";\nconst timestamp = new Date().toISOString();\nconst body = {\n  initiatedAmount: $('Form: Create Payout').first().json.amount,\n  currency: \"IDR\",\n  destinationPayoutMethod: $input.first().json.method,\n  destinationPayoutChannel: $input.first().json.channel,\n  destinationPayoutAccount: $('Form: Create Payout').first().json.destinationPayoutAccount,\n  destinationPayoutAccountName: $('Form: Create Payout').first().json.destinationPayoutAccountName,\n  referenceCode: \"REF-TEST-001\",\n  customerReference: $('Form: Create Payout').first().json.email,\n  description: \"Payout merchant TEST MERCHANT 2026-01-01\",\n  callbackUrl: \"https://harlee-phylogenetic-nonequivocally.ngrok-free.dev/webhook/xenith-payout-sandbox\"\n}\n\nconst signaturePayload = `${method}\\n${uri}\\n${timestamp}\\n${JSON.stringify(body)}`;\n\nreturn {json:{signaturePayload,timestamp,body}}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1120,
+        1568
+      ],
+      "id": "4c78c45a-1fa5-40f8-8748-357dbac10ad3",
+      "name": "Code: Build Xenith Payout Payload"
+    },
+    {
+      "parameters": {
+        "action": "generate",
+        "dataPropertyName": "QRIdempotencyKey"
+      },
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        -672,
+        1568
+      ],
+      "id": "23ce2918-a671-4c93-a8ec-ef23f2f259a0",
+      "name": "Crypto: Generate Payout Idempotency Key"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openapi.sandbox.xenithpay.com/v1/payouts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Xenith-Request-Timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "name": "Xenith-Request-Signature",
+              "value": "={{ $json.signature }}"
+            },
+            {
+              "name": "X-Idempotency-Key",
+              "value": "={{ $json.QRIdempotencyKey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -448,
+        1568
+      ],
+      "id": "27653c52-a020-4ce0-b393-5296138936a8",
+      "name": "HTTP: Create Xenith Payout",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "oiicjXYlrI4Wv2fB",
+          "name": "Xenith-Api-Key"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "value": "={{ $('Code: Build Xenith Payout Payload').first().json.signaturePayload }}",
+        "dataPropertyName": "signature",
+        "encoding": "base64"
+      },
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        -896,
+        1568
+      ],
+      "id": "3024a6e4-a099-43f7-8f74-1bf07e4e45d0",
+      "name": "Crypto: Create Xenith Payout Signature",
+      "credentials": {
+        "crypto": {
+          "id": "qlnI2lE8OOmNnjNE",
+          "name": "Xenith-Secret-Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Create Payout",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Jumlah Dana",
+              "fieldType": "number",
+              "fieldName": "amount"
+            },
+            {
+              "fieldLabel": "Metode Penarikan",
+              "fieldType": "dropdown",
+              "fieldName": "payout_name",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Bank Central Asia (BCA)"
+                  },
+                  {
+                    "option": "DANA"
+                  },
+                  {
+                    "option": "LinkAja"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Nomor rekening",
+              "fieldName": "destinationPayoutAccount"
+            },
+            {
+              "fieldLabel": "Nama pada Rekening",
+              "fieldName": "destinationPayoutAccountName"
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldName": "email"
+            }
+          ]
+        },
+        "options": {
+          "path": "create-payout"
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        -1616,
+        1568
+      ],
+      "id": "0ff2efef-cc64-43fa-b27d-48dfcff0601b",
+      "name": "Form: Create Payout",
+      "webhookId": "c434a5c6-d855-4d0c-a1a7-d769a53022c2"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "payout_channels",
+          "mode": "list",
+          "cachedResultName": "payout_channels"
+        },
+        "limit": 1,
+        "where": {
+          "values": [
+            {
+              "column": "name",
+              "value": "={{ $json.payout_name }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1408,
+        1568
+      ],
+      "id": "5332e3dc-882e-4ca7-a64e-f6babf5c4389",
+      "name": "Postgres: Get Payout Channel",
+      "credentials": {
+        "postgres": {
+          "id": "Ea2k4mpjj6wH5jn7",
+          "name": "onlysubs"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "xenith-payout-sandbox",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1424,
+        2160
+      ],
+      "id": "85cc921e-b266-480f-9f94-3b81328fb90c",
+      "name": "Webhook: Xenith Payout Callback",
+      "webhookId": "02f343a7-7616-4243-872c-1d75671fe5e5"
+    },
+    {
+      "parameters": {
+        "jsCode": "const method = \"POST\"\nconst uri = \"/webhook/xenith-payout-sandbox\";\n\nreturn {\n          method,\n          uri,\n          body:$json.body,\n          xenithSignature:$input.first().json.headers['x-xenith-signature'],\n          xenithTimestamp:$input.first().json.headers['x-xenith-timestamp'],\n       }"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1200,
+        2160
+      ],
+      "id": "36c41da7-70ac-419c-9d07-19ef64d81030",
+      "name": "Code: Build Payout Signature Validation Payload"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fe4e53e4-aaa4-48f6-aed9-206dd72a089a",
+              "leftValue": "={{ $json.xenithSignature }}",
+              "rightValue": "={{ $json.expected_signature }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "febd2790-ac7c-4a10-b7ec-179414c02bd3",
+              "leftValue": "={{ $json.body.data.status }}",
+              "rightValue": "SUCCESS",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -752,
+        2160
+      ],
+      "id": "a49a09e9-3ad9-4fea-87c9-4784699f5d6b",
+      "name": "Check: Xenith Payout Signature Valid?"
+    },
+    {
+      "parameters": {
+        "action": "hmac",
+        "value": "={{`${$json.method}\\\\n${$json.uri}\\\\n${\n     $json.body.toJsonString()  || \"\"\n    }\\\\n${$json.body.timestamp}`}}",
+        "dataPropertyName": "expected_signature",
+        "encoding": "base64"
+      },
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        -976,
+        2160
+      ],
+      "id": "4b37d277-c259-4364-954c-39d98755d754",
+      "name": "Crypto: Create Expected Xenith Payout Signature",
+      "credentials": {
+        "crypto": {
+          "id": "xrqVdMFvQVdThaBu",
+          "name": "xenith-web-signature-secret"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Callback Payout\n",
+        "height": 576,
+        "width": 2236
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1808,
+        1984
+      ],
+      "typeVersion": 1,
+      "id": "999d0e96-c634-4890-991c-30717f4a32fb",
+      "name": "Note: Callback Payout Flow"
+    },
+    {
+      "parameters": {
+        "content": "# Payout\n",
+        "height": 576,
+        "width": 2236
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1808,
+        1312
+      ],
+      "typeVersion": 1,
+      "id": "a0194c70-a2a4-43ed-9c94-0bb073196537",
+      "name": "Note: Payout Flow"
+    },
+    {
+      "parameters": {
+        "fromEmail": "cs@xenithpay.me",
+        "toEmail": "={{ $json.body.data.customerReference }}",
+        "subject": "=Status Pembayaran Invoice {{ $json.body.data.customerName }} - {{ $json.body.data.status }}",
+        "html": "=<!doctype html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<style>\n@media only screen and (max-width:600px){\n.container{ width:100% !important; border-radius:0 !important; }\n.padding{ padding:20px 16px !important; }\n.amount{ font-size:28px !important; }\n.header{ font-size:18px !important; }\n}\n</style>\n</head>\n<body style=\"margin:0;padding:0;background:#f3f4f6;font-family:Segoe UI,Arial,sans-serif;\">\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f3f4f6;padding:20px 0;\">\n<tr><td align=\"center\">\n<table class=\"container\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:520px;background:#ffffff;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;\">\n\n<!-- HEADER -->\n<tr><td style=\"background:{{ $json.body.data.status === 'SUCCESS' ? '#16a34a' : $json.body.data.status === 'EXPIRED' ? '#d97706' : '#dc2626' }};padding:26px;text-align:center;\">\n<div class=\"header\" style=\"color:#ffffff;font-size:20px;font-weight:600;\">\n{{ $json.body.data.status === 'SUCCESS' ? '✅ Pembayaran Berhasil' : $json.body.data.status === 'EXPIRED' ? '⏰ Pembayaran Kedaluwarsa' : '❌ Pembayaran Gagal' }}\n</div>\n</td></tr>\n\n<!-- CONTENT -->\n<tr><td class=\"padding\" style=\"padding:28px;\">\n\n<p style=\"margin:0 0 18px 0;font-size:15px;color:#374151;line-height:1.6;\">\n{{ $json.body.data.status === 'SUCCESS' ? 'Pembayaran Anda telah berhasil diproses.' : $json.body.data.status === 'EXPIRED' ? 'Pembayaran Anda telah melewati batas waktu dan dinyatakan kedaluwarsa.' : 'Pembayaran Anda gagal diproses. Silakan coba lagi.' }}\n</p>\n\n<!-- AMOUNT BOX -->\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:18px 0;\">\n<tr><td style=\"background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:22px;text-align:center;\">\n<div style=\"font-size:13px;color:#6b7280;margin-bottom:6px;\">Jumlah Pembayaran</div>\n<div class=\"amount\" style=\"font-size:34px;font-weight:700;color:#111827;\">\nRp {{ Number($json.body.data.paymentAmount || $json.body.data.initiatedAmount || 0).toLocaleString('id-ID') }}\n</div>\n</td></tr>\n</table>\n\n<!-- TRANSACTION ID -->\n<div style=\"margin-bottom:16px;\">\n<div style=\"font-size:12px;color:#6b7280;margin-bottom:6px;\">Transaction ID</div>\n<div style=\"font-family:monospace;font-size:14px;color:#111827;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;word-break:break-all;user-select:all;\">\n{{ $json.body.data.id }}\n</div>\n</div>\n\n<!-- STATUS -->\n<div style=\"margin-bottom:16px;\">\n<div style=\"font-size:12px;color:#6b7280;margin-bottom:6px;\">Status</div>\n<div style=\"display:inline-block;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;color:#fff;background:{{ $json.body.data.status === 'SUCCESS' ? '#16a34a' : $json.body.data.status === 'EXPIRED' ? '#d97706' : '#dc2626' }};\">\n{{ $json.body.data.status }}\n</div>\n</div>\n\n<!-- CUSTOMER -->\n<div style=\"margin-top:12px;\">\n<div style=\"font-size:12px;color:#6b7280;margin-bottom:6px;\">Customer</div>\n<div style=\"font-size:14px;color:#111827;line-height:1.6;\">{{ $json.body.data.customerName }}</div>\n</div>\n\n</td></tr>\n\n<!-- FOOTER -->\n<tr><td style=\"background:#f9fafb;padding:18px;text-align:center;font-size:12px;color:#6b7280;border-top:1px solid #e5e7eb;\">\nEmail ini merupakan notifikasi otomatis dari sistem.<br>\nTerima kasih telah menggunakan layanan kami.\n</td></tr>\n\n</table>\n</td></tr>\n</table>\n</body>\n</html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        -640,
+        816
+      ],
+      "id": "f5af9aa7-e5f9-41f4-b576-a3065bb021af",
+      "name": "Email: Send Payin Status Notification",
+      "webhookId": "9abf634a-dc2a-4fc0-b746-fb8c24faa449",
+      "credentials": {
+        "smtp": {
+          "id": "48zOIX1wzn6KU8y8",
+          "name": "onlysubs"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "cs@onlysubs.me",
+        "toEmail": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.customerReference }}",
+        "subject": "=Penarikan Saldo Berhasil – Rp {{ Number($('Webhook: Xenith Payout Callback').item.json.body.data.initiatedAmount || 0).toLocaleString('id-ID') }}",
+        "html": "=<!doctype html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n\n<style>\n\n@media only screen and (max-width:600px){\n\n.container{\nwidth:100% !important;\nborder-radius:0 !important;\n}\n\n.padding{\npadding:20px 16px !important;\n}\n\n.amount{\nfont-size:28px !important;\n}\n\n.header{\nfont-size:18px !important;\n}\n\n}\n\n</style>\n</head>\n\n<body style=\"margin:0;padding:0;background:#f3f4f6;font-family:Segoe UI,Arial,sans-serif;\">\n\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f3f4f6;padding:20px 0;\">\n<tr>\n<td align=\"center\">\n\n<table class=\"container\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\"\nstyle=\"max-width:520px;background:#ffffff;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;\">\n\n<!-- HEADER -->\n<tr>\n<td style=\"background:#16a34a;padding:26px;text-align:center;\">\n<div class=\"header\" style=\"color:#ffffff;font-size:20px;font-weight:600;\">\n✅ Penarikan Saldo Berhasil\n</div>\n</td>\n</tr>\n\n<!-- CONTENT -->\n<tr>\n<td class=\"padding\" style=\"padding:28px;\">\n\n<p style=\"margin:0 0 18px 0;font-size:15px;color:#374151;line-height:1.6;\">\nPenarikan saldo Anda telah berhasil dilakukan dengan rincian berikut:\n</p>\n\n<!-- AMOUNT BOX -->\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:18px 0;\">\n<tr>\n<td style=\"background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:22px;text-align:center;\">\n\n<div style=\"font-size:13px;color:#6b7280;margin-bottom:6px;\">\nJumlah Penarikan\n</div>\n\n<div class=\"amount\" style=\"font-size:34px;font-weight:700;color:#111827;\">\nRp {{ Number($('Webhook: Xenith Payout Callback').item.json.body.data.initiatedAmount || 0).toLocaleString('id-ID') }}\n</div>\n\n</td>\n</tr>\n</table>\n\n<!-- PAYOUT ID -->\n<div style=\"margin-bottom:16px;\">\n\n<div style=\"font-size:12px;color:#6b7280;margin-bottom:6px;\">\nPayout ID\n</div>\n\n<div style=\"\nfont-family: monospace;\nfont-size:14px;\ncolor:#111827;\nbackground:#f3f4f6;\nborder:1px solid #e5e7eb;\nborder-radius:8px;\npadding:10px 12px;\nword-break:break-all;\nuser-select:all;\n\">\n{{ $('Webhook: Xenith Payout Callback').item.json.body.data.id }}\n</div>\n\n</div>\n\n<!-- DESCRIPTION -->\n<div style=\"margin-top:12px;\">\n\n<div style=\"font-size:12px;color:#6b7280;margin-bottom:6px;\">\nKeterangan\n</div>\n\n<div style=\"font-size:14px;color:#111827;line-height:1.6;\">\n{{ $('Webhook: Xenith Payout Callback').item.json.body.data.description }}\n</div>\n\n</div>\n\n</td>\n</tr>\n\n<!-- FOOTER -->\n<tr>\n<td style=\"background:#f9fafb;padding:18px;text-align:center;font-size:12px;color:#6b7280;border-top:1px solid #e5e7eb;\">\nEmail ini merupakan notifikasi otomatis dari sistem.<br>\nTerima kasih telah menggunakan layanan kami.\n</td>\n</tr>\n\n</table>\n\n</td>\n</tr>\n</table>\n\n</body>\n</html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        -464,
+        2144
+      ],
+      "id": "ee319e6a-604e-4ba0-af09-4c79290376af",
+      "name": "Email: Send Payout Success",
+      "webhookId": "a5a6a75e-4893-4587-9e25-b8e4d5dba45c",
+      "credentials": {
+        "smtp": {
+          "id": "48zOIX1wzn6KU8y8",
+          "name": "onlysubs"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Crypto: Generate Payin Idempotency Key": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Create Xenith Payin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Create Xenith Payin": {
+      "main": [
+        [
+          {
+            "node": "Check: Has QRIS Payment Option?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Has QRIS Payment Option?": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Generate QRIS Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email: Send Invoice Payment Options",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Generate QRIS Image": {
+      "main": [
+        [
+          {
+            "node": "Email: Send Invoice Payment Options",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Xenith Payin Requests": {
+      "main": [
+        [
+          {
+            "node": "Crypto: Create Xenith Payin Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto: Create Xenith Payin Signature": {
+      "main": [
+        [
+          {
+            "node": "Crypto: Generate Payin Idempotency Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form: Create Invoice": {
+      "main": [
+        [
+          {
+            "node": "Postgres: Get Payment Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres: Get Payment Channel": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Xenith Payin Requests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Simulate Payin Payload": {
+      "main": [
+        [
+          {
+            "node": "Crypto: Create Simulate Payin Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto: Create Simulate Payin Signature": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Simulate Xenith Payin Transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form: Simulate Payin": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Simulate Payin Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: Xenith Payin Callback": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Signature Validation Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Signature Validation Payload": {
+      "main": [
+        [
+          {
+            "node": "Crypto: Create Expected Xenith Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto: Create Expected Xenith Signature": {
+      "main": [
+        [
+          {
+            "node": "Check: Xenith Signature Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Xenith Payout Payload": {
+      "main": [
+        [
+          {
+            "node": "Crypto: Create Xenith Payout Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto: Generate Payout Idempotency Key": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Create Xenith Payout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto: Create Xenith Payout Signature": {
+      "main": [
+        [
+          {
+            "node": "Crypto: Generate Payout Idempotency Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form: Create Payout": {
+      "main": [
+        [
+          {
+            "node": "Postgres: Get Payout Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres: Get Payout Channel": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Xenith Payout Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: Xenith Payout Callback": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Payout Signature Validation Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Payout Signature Validation Payload": {
+      "main": [
+        [
+          {
+            "node": "Crypto: Create Expected Xenith Payout Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto: Create Expected Xenith Payout Signature": {
+      "main": [
+        [
+          {
+            "node": "Check: Xenith Payout Signature Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Create Xenith Payout": {
+      "main": [
+        []
+      ]
+    },
+    "Check: Xenith Payout Signature Valid?": {
+      "main": [
+        [
+          {
+            "node": "Email: Send Payout Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Xenith Signature Valid?": {
+      "main": [
+        [
+          {
+            "node": "Email: Send Payin Status Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d697c6b6-c2f0-4f11-af02-c91be5398285",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fd68e697f63f15d04e3ee045f2e66a3d1a3fe462f5708a19c54e73572f40074e"
+  },
+  "id": "MFlTr6wozJgcn8Uz",
+  "tags": []
+}
