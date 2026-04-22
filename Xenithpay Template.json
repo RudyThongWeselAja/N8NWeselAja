@@ -162,7 +162,7 @@
     },
     {
       "parameters": {
-        "content": "# Create Invoice\n\n## Prasyarat\n- Buat credential **PostgreSQL** di N8N (Settings > Credentials)\n- Buat tabel `payment_channels` dengan kolom: `id`, `method`, `channel`, `name`, `created_at`\n- Seed data dari file `payment_channels_rows.sql`\n\n## Alur\nForm > Postgres: Get Payment Channel > Code: Build Request > Crypto: Sign > Crypto: Idempotency > HTTP: Create Payin > Check QRIS > Email Invoice\n",
+        "content": "# Create Invoice\n\n## Prasyarat\n- Buat credential **PostgreSQL** di N8N (Settings > Credentials)\n- Buat tabel `payment_channels` dengan kolom: `id`, `method`, `channel`, `name`, `created_at`\n- Seed data dari file `payment_channels_rows.sql` pada https://github.com/RudyThongWeselAja/N8NWeselAja/blob/main/payment_channels_rows.sql\n\n## Alur\nForm > Postgres: Get Payment Channel > Code: Build Request > Crypto: Sign > Crypto: Idempotency > HTTP: Create Payin > Check QRIS > Email Invoice\n",
         "height": 576,
         "width": 2236
       },
@@ -851,7 +851,7 @@
     },
     {
       "parameters": {
-        "content": "# Payout\n\n## Prasyarat\n- Buat credential **PostgreSQL** di N8N (Settings > Credentials)\n- Buat tabel `payout_channels` dengan kolom: `id`, `method`, `channel`, `name`, `created_at`\n- Seed data dari file `payout_channels_rows.sql`\n\n## Alur\nForm > Postgres: Get Payout Channel > Code: Build Payload > Crypto: Sign > Crypto: Idempotency > HTTP: Create Payout\n",
+        "content": "# Payout\n\n## Prasyarat\n- Buat credential **PostgreSQL** di N8N (Settings > Credentials)\n- Buat tabel `payout_channels` dengan kolom: `id`, `method`, `channel`, `name`, `created_at`\n- Seed data dari file `payout_channels_rows.sql` pada https://github.com/RudyThongWeselAja/N8NWeselAja/blob/main/payout_channels_rows.sql\n## Alur\nForm > Postgres: Get Payout Channel > Code: Build Payload > Crypto: Sign > Crypto: Idempotency > HTTP: Create Payout\n",
         "height": 576,
         "width": 2236
       },
@@ -1196,7 +1196,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "77f28570-e6cb-42eb-8f77-388c2c7c10f4",
+  "versionId": "468e54ea-dfe7-45e1-ae3f-2d40f3a6793d",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "fd68e697f63f15d04e3ee045f2e66a3d1a3fe462f5708a19c54e73572f40074e"
