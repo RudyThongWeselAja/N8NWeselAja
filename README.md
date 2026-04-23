@@ -60,8 +60,8 @@ Sebelum mengimpor workflow, pastikan credential berikut sudah dikonfigurasi di N
 | `Xenith-Api-Key`               | HTTP Header Auth  | API Key untuk autentikasi request ke XenithPay API   |
 | `Xenith-Secret-Key`            | Crypto (HMAC)     | Secret key untuk generate HMAC signature request     |
 | `xenith-web-signature-secret`  | Crypto (HMAC)     | Secret key untuk validasi signature callback webhook |
-| `onlysubs` (Postgres)          | PostgreSQL        | Koneksi ke database PostgreSQL                       |
-| `onlysubs` (SMTP)              | SMTP              | Konfigurasi email SMTP untuk pengiriman notifikasi   |
+| `database` (Postgres)          | PostgreSQL        | Koneksi ke database PostgreSQL                       |
+| `SMTP`                         | SMTP              | Konfigurasi email SMTP untuk pengiriman notifikasi   |
 
 ---
 

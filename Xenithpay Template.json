@@ -210,14 +210,14 @@
       "name": "Postgres: Get Payment Channel",
       "credentials": {
         "postgres": {
-          "id": "Ea2k4mpjj6wH5jn7",
-          "name": "onlysubs"
+          "id": "76wpseHZgIlGdW8h",
+          "name": "database"
         }
       }
     },
     {
       "parameters": {
-        "fromEmail": "admin@xenithpay.com",
+        "fromEmail": "cs@weselaja.com",
         "toEmail": "={{ $json.customerReference }}",
         "subject": "=Invoice Pembayaran • {{ $json.customerName }} • Rp {{ new Intl.NumberFormat('id-ID').format(Number($json.initiatedAmount)) }}",
         "html": "=<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Invoice</title>\n</head>\n<body style=\"font-family: Arial, sans-serif; background-color:#f6f6f6; padding:20px;\">\n  \n  <div style=\"max-width:600px; margin:auto; background:#ffffff; padding:24px; border-radius:10px;\">\n    \n    <h2 style=\"color:#333; margin-bottom:5px;\">Invoice</h2>\n    <p style=\"color:#777; font-size:14px;\">Detail transaksi Anda</p>\n\n    <!-- ID Transaksi + keterangan -->\n    <div style=\"margin-top:10px;\">\n      <p style=\"font-size:13px; color:#999; margin:0;\">\n        Transaction ID: <strong>{{$json.id}}</strong>\n      </p>\n      <p style=\"font-size:12px; color:#bbb; margin-top:3px;\">\n        Gunakan ID ini untuk simulate payin di environment sandbox.\n      </p>\n    </div>\n\n    <hr style=\"margin:20px 0;\">\n\n    <p><strong>Customer:</strong> {{$json.customerName}}</p>\n\n    <p><strong>Payment Channel:</strong> \n      {{ $('Postgres: Get Payment Channel').item.json.name }}\n    </p>\n\n    <table style=\"width:100%; border-collapse:collapse; margin-top:20px;\">\n      <tr>\n        <td style=\"padding:10px 0;\">Amount</td>\n        <td style=\"text-align:right;\">\n          Rp {{ new Intl.NumberFormat('id-ID').format(Number($json.initiatedAmount)) }}\n        </td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 0;\">Fee</td>\n        <td style=\"text-align:right;\">\n          Rp {{ new Intl.NumberFormat('id-ID').format(Number($json.feeAmount || 0)) }}\n        </td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 0; border-top:1px solid #eee;\"><strong>Total</strong></td>\n        <td style=\"text-align:right; border-top:1px solid #eee;\">\n          <strong>\n            Rp {{ new Intl.NumberFormat('id-ID').format(\n              Number($json.initiatedAmount) + Number($json.feeAmount || 0)\n            ) }}\n          </strong>\n        </td>\n      </tr>\n    </table>\n\n    <!-- Conditional Payment -->\n    <div style=\"text-align:center; margin-top:20px;\">\n      \n      {{\n        $json.paymentChannel?.toUpperCase() === 'QRIS'\n        ? `<div>\n            <p style=\"font-size:14px; color:#555; margin-bottom:10px;\">\n              Scan QRIS untuk pembayaran\n            </p>\n            <img src=\"cid:data\" alt=\"QRIS\" style=\"max-width:250px; width:100%; border-radius:8px;\" />\n          </div>`\n        : `<div>\n            <p style=\"font-size:14px; color:#555; margin-bottom:8px;\">\n              Kode Pembayaran\n            </p>\n            <p style=\"font-size:20px; font-weight:bold; letter-spacing:2px;\">\n              ${$json.paymentCode || '-'}\n            </p>\n          </div>`\n      }}\n\n    </div>\n\n    <div style=\"margin-top:20px;\">\n      <strong>Description:</strong>\n      <p style=\"margin-top:5px; color:#555;\">\n        {{$json.description || '-'}}\n      </p>\n    </div>\n\n    <hr style=\"margin:25px 0;\">\n\n    <p style=\"font-size:14px; color:#666;\">\n      Terima kasih atas transaksi Anda.\n    </p>\n\n  </div>\n\n</body>\n</html>",
@@ -237,8 +237,8 @@
       "webhookId": "520bc1c5-2a76-4e78-b23f-98113fc8dcc6",
       "credentials": {
         "smtp": {
-          "id": "48zOIX1wzn6KU8y8",
-          "name": "onlysubs"
+          "id": "EouNnSonUqsoN7Tl",
+          "name": "SMTP"
         }
       }
     },
@@ -597,8 +597,8 @@
       "name": "Postgres: Get Payout Channel",
       "credentials": {
         "postgres": {
-          "id": "Ea2k4mpjj6wH5jn7",
-          "name": "onlysubs"
+          "id": "76wpseHZgIlGdW8h",
+          "name": "database"
         }
       }
     },
@@ -729,7 +729,7 @@
     },
     {
       "parameters": {
-        "fromEmail": "cs@xenithpay.me",
+        "fromEmail": "cs@weselaja.com",
         "toEmail": "={{ $json.body.data.customerReference }}",
         "subject": "=Status Pembayaran Invoice {{ $json.body.data.customerName }} - {{ $json.body.data.status }}",
         "html": "=<!doctype html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<style>\n@media only screen and (max-width:600px){\n.container{ width:100% !important; border-radius:0 !important; }\n.padding{ padding:20px 16px !important; }\n.amount{ font-size:28px !important; }\n.header{ font-size:18px !important; }\n}\n</style>\n</head>\n<body style=\"margin:0;padding:0;background:#f3f4f6;font-family:Segoe UI,Arial,sans-serif;\">\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f3f4f6;padding:20px 0;\">\n<tr><td align=\"center\">\n<table class=\"container\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:520px;background:#ffffff;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;\">\n\n<!-- HEADER -->\n<tr><td style=\"background:{{ $json.body.data.status === 'SUCCESS' ? '#16a34a' : $json.body.data.status === 'EXPIRED' ? '#d97706' : '#dc2626' }};padding:26px;text-align:center;\">\n<div class=\"header\" style=\"color:#ffffff;font-size:20px;font-weight:600;\">\n{{ $json.body.data.status === 'SUCCESS' ? '✅ Pembayaran Berhasil' : $json.body.data.status === 'EXPIRED' ? '⏰ Pembayaran Kedaluwarsa' : '❌ Pembayaran Gagal' }}\n</div>\n</td></tr>\n\n<!-- CONTENT -->\n<tr><td class=\"padding\" style=\"padding:28px;\">\n\n<p style=\"margin:0 0 18px 0;font-size:15px;color:#374151;line-height:1.6;\">\n{{ $json.body.data.status === 'SUCCESS' ? 'Pembayaran Anda telah berhasil diproses.' : $json.body.data.status === 'EXPIRED' ? 'Pembayaran Anda telah melewati batas waktu dan dinyatakan kedaluwarsa.' : 'Pembayaran Anda gagal diproses. Silakan coba lagi.' }}\n</p>\n\n<!-- AMOUNT BOX -->\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:18px 0;\">\n<tr><td style=\"background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:22px;text-align:center;\">\n<div style=\"font-size:13px;color:#6b7280;margin-bottom:6px;\">Jumlah Pembayaran</div>\n<div class=\"amount\" style=\"font-size:34px;font-weight:700;color:#111827;\">\nRp {{ Number($json.body.data.paymentAmount || $json.body.data.initiatedAmount || 0).toLocaleString('id-ID') }}\n</div>\n</td></tr>\n</table>\n\n<!-- TRANSACTION ID -->\n<div style=\"margin-bottom:16px;\">\n<div style=\"font-size:12px;color:#6b7280;margin-bottom:6px;\">Transaction ID</div>\n<div style=\"font-family:monospace;font-size:14px;color:#111827;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;word-break:break-all;user-select:all;\">\n{{ $json.body.data.id }}\n</div>\n</div>\n\n<!-- STATUS -->\n<div style=\"margin-bottom:16px;\">\n<div style=\"font-size:12px;color:#6b7280;margin-bottom:6px;\">Status</div>\n<div style=\"display:inline-block;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;color:#fff;background:{{ $json.body.data.status === 'SUCCESS' ? '#16a34a' : $json.body.data.status === 'EXPIRED' ? '#d97706' : '#dc2626' }};\">\n{{ $json.body.data.status }}\n</div>\n</div>\n\n<!-- CUSTOMER -->\n<div style=\"margin-top:12px;\">\n<div style=\"font-size:12px;color:#6b7280;margin-bottom:6px;\">Customer</div>\n<div style=\"font-size:14px;color:#111827;line-height:1.6;\">{{ $json.body.data.customerName }}</div>\n</div>\n\n</td></tr>\n\n<!-- FOOTER -->\n<tr><td style=\"background:#f9fafb;padding:18px;text-align:center;font-size:12px;color:#6b7280;border-top:1px solid #e5e7eb;\">\nEmail ini merupakan notifikasi otomatis dari sistem.<br>\nTerima kasih telah menggunakan layanan kami.\n</td></tr>\n\n</table>\n</td></tr>\n</table>\n</body>\n</html>",
@@ -748,14 +748,14 @@
       "webhookId": "9abf634a-dc2a-4fc0-b746-fb8c24faa449",
       "credentials": {
         "smtp": {
-          "id": "48zOIX1wzn6KU8y8",
-          "name": "onlysubs"
+          "id": "EouNnSonUqsoN7Tl",
+          "name": "SMTP"
         }
       }
     },
     {
       "parameters": {
-        "fromEmail": "cs@onlysubs.me",
+        "fromEmail": "cs@weselaja.com",
         "toEmail": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.customerReference }}",
         "subject": "=Penarikan Saldo Berhasil – Rp {{ Number($('Webhook: Xenith Payout Callback').item.json.body.data.initiatedAmount || 0).toLocaleString('id-ID') }}",
         "html": "=<!doctype html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n\n<style>\n\n@media only screen and (max-width:600px){\n\n.container{\nwidth:100% !important;\nborder-radius:0 !important;\n}\n\n.padding{\npadding:20px 16px !important;\n}\n\n.amount{\nfont-size:28px !important;\n}\n\n.header{\nfont-size:18px !important;\n}\n\n}\n\n</style>\n</head>\n\n<body style=\"margin:0;padding:0;background:#f3f4f6;font-family:Segoe UI,Arial,sans-serif;\">\n\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f3f4f6;padding:20px 0;\">\n<tr>\n<td align=\"center\">\n\n<table class=\"container\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\"\nstyle=\"max-width:520px;background:#ffffff;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;\">\n\n<!-- HEADER -->\n<tr>\n<td style=\"background:#16a34a;padding:26px;text-align:center;\">\n<div class=\"header\" style=\"color:#ffffff;font-size:20px;font-weight:600;\">\n✅ Penarikan Saldo Berhasil\n</div>\n</td>\n</tr>\n\n<!-- CONTENT -->\n<tr>\n<td class=\"padding\" style=\"padding:28px;\">\n\n<p style=\"margin:0 0 18px 0;font-size:15px;color:#374151;line-height:1.6;\">\nPenarikan saldo Anda telah berhasil dilakukan dengan rincian berikut:\n</p>\n\n<!-- AMOUNT BOX -->\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:18px 0;\">\n<tr>\n<td style=\"background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:22px;text-align:center;\">\n\n<div style=\"font-size:13px;color:#6b7280;margin-bottom:6px;\">\nJumlah Penarikan\n</div>\n\n<div class=\"amount\" style=\"font-size:34px;font-weight:700;color:#111827;\">\nRp {{ Number($('Webhook: Xenith Payout Callback').item.json.body.data.initiatedAmount || 0).toLocaleString('id-ID') }}\n</div>\n\n</td>\n</tr>\n</table>\n\n<!-- PAYOUT ID -->\n<div style=\"margin-bottom:16px;\">\n\n<div style=\"font-size:12px;color:#6b7280;margin-bottom:6px;\">\nPayout ID\n</div>\n\n<div style=\"\nfont-family: monospace;\nfont-size:14px;\ncolor:#111827;\nbackground:#f3f4f6;\nborder:1px solid #e5e7eb;\nborder-radius:8px;\npadding:10px 12px;\nword-break:break-all;\nuser-select:all;\n\">\n{{ $('Webhook: Xenith Payout Callback').item.json.body.data.id }}\n</div>\n\n</div>\n\n<!-- DESCRIPTION -->\n<div style=\"margin-top:12px;\">\n\n<div style=\"font-size:12px;color:#6b7280;margin-bottom:6px;\">\nKeterangan\n</div>\n\n<div style=\"font-size:14px;color:#111827;line-height:1.6;\">\n{{ $('Webhook: Xenith Payout Callback').item.json.body.data.description }}\n</div>\n\n</div>\n\n</td>\n</tr>\n\n<!-- FOOTER -->\n<tr>\n<td style=\"background:#f9fafb;padding:18px;text-align:center;font-size:12px;color:#6b7280;border-top:1px solid #e5e7eb;\">\nEmail ini merupakan notifikasi otomatis dari sistem.<br>\nTerima kasih telah menggunakan layanan kami.\n</td>\n</tr>\n\n</table>\n\n</td>\n</tr>\n</table>\n\n</body>\n</html>",
@@ -774,8 +774,8 @@
       "webhookId": "a5a6a75e-4893-4587-9e25-b8e4d5dba45c",
       "credentials": {
         "smtp": {
-          "id": "48zOIX1wzn6KU8y8",
-          "name": "onlysubs"
+          "id": "EouNnSonUqsoN7Tl",
+          "name": "SMTP"
         }
       }
     },
@@ -1074,7 +1074,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "a7a2d64c-72da-4202-9d8c-839f777c690d",
+  "versionId": "25acfc44-09c8-46fe-b83e-eacff8f15446",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "fd68e697f63f15d04e3ee045f2e66a3d1a3fe462f5708a19c54e73572f40074e"
