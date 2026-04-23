@@ -343,28 +343,28 @@ Check: Xenith Payout Signature Valid?
 
 ## Konfigurasi
 
-### 1. Callback URL
+### 1. Konfigurasi Global Variables
 
-`callbackUrl` yang dikonfigurasi di node **Code: Build Xenith Payin Requests** dan **Code: Build Xenith Payout Payload** **harus mengarah ke webhook path** yang terdaftar di flow **Callback Payin** dan **Callback Payout**. Ini karena setelah XenithPay memproses transaksi, XenithPay akan mengirimkan notifikasi (callback) ke URL tersebut.
+Template ini menggunakan *community node* `n8n-nodes-globals` untuk mengakses variabel/url penting di banyak node sekaligus secara dinamis. Anda **wajib** mengkonfigurasi credential `WeselAja Global Variables` dengan nilai yang sesuai.
 
-**Hubungan antara `callbackUrl` dan Webhook Node:**
+1. Buka **Settings > Credentials** di N8N.
+2. Cari dan edit credential bernama `WeselAja Global Variables` (tipe `Global Constants Api`).
+3. Pastikan **Format** diset menjadi `Key-value pairs`.
+4. Pada field **Global Constants**, masukkan nilai berikut (sesuaikan public URL dan domain Anda):
 
-| Flow | Code Node (callbackUrl) | Webhook Node (path) | URL Lengkap |
-|------|------------------------|---------------------|-------------|
-| **Payin** | `Code: Build Xenith Payin Requests` | `Webhook: Xenith Payin Callback` | `https://<your-public-url>/webhook/xenith-payin-sandbox` |
-| **Payout** | `Code: Build Xenith Payout Payload` | `Webhook: Xenith Payout Callback` | `https://<your-public-url>/webhook/xenith-payout-sandbox` |
-
-Update `callbackUrl` di kedua Code node dengan public URL N8N Anda:
-
-```javascript
-// Di Code: Build Xenith Payin Requests
-// URL ini HARUS cocok dengan path di Webhook: Xenith Payin Callback
-callbackUrl: 'https://<your-public-url>/webhook/xenith-payin-sandbox'
-
-// Di Code: Build Xenith Payout Payload
-// URL ini HARUS cocok dengan path di Webhook: Xenith Payout Callback
-callbackUrl: 'https://<your-public-url>/webhook/xenith-payout-sandbox'
+```text
+xenithpayEndpoint=https://openapi.sandbox.xenithpay.com
+callbackUrl=https://<your-public-url>/webhook/xenith-payin-sandbox
+redirectUrl=https://www.weselaja.com/
 ```
+
+**Penjelasan Variabel:**
+- `xenithpayEndpoint`: Base URL endpoint transaksi XenithPay API (gunakan `https://openapi.sandbox.xenithpay.com` untuk sandbox atau `https://openapi.xenithpay.com` jika sudah masuk production).
+- `callbackUrl`: URL lengkap yang mengarah ke path webhook payin Anda. Gantilah placeholder `<your-public-url>` dengan public URL ngrok atau domain aktif N8N Anda. URL ini **wajib** menggunakan format Production URL (memiliki `/webhook/`).
+- `redirectUrl`: URL (web front-end Anda) ke mana customer diarahkan ketika telah menyelesaikan pembayaran. (sesuaikan dengan situs weselaja target).
+
+> [!NOTE]
+> Parameter `callbackUrl` untuk flow Payout akan otomatis di-generate di dalam node `Code: Build Xenith Payout Payload` dengan mengadaptasi nilai global `callbackUrl` di atas (bagian akhir `xenith-payin-sandbox` akan di-replace menjadi `xenith-payout-sandbox`).
 
 **⚠️ Test URL vs Production URL di N8N:**
 
@@ -375,12 +375,11 @@ Setiap Webhook node di N8N memiliki **2 URL** yang bisa dilihat di panel node:
 | **Test URL** | `/webhook-test/<path>` | Hanya saat klik **"Listen for test event"** di N8N UI |
 | **Production URL** | `/webhook/<path>` | Saat workflow **aktif** (toggle ON) |
 
-`callbackUrl` **HARUS menggunakan format Production URL** (`/webhook/`), bukan Test URL (`/webhook-test/`), karena XenithPay mengirim callback secara otomatis saat transaksi diproses — artinya workflow harus sudah aktif dan menggunakan Production URL.
+`callbackUrl` di Global Variables **HARUS menggunakan format Production URL** (`/webhook/`), bukan Test URL (`/webhook-test/`), karena XenithPay mengirim callback secara otomatis saat transaksi diproses — artinya workflow harus dalam keadaan aktif.
 
 > [!IMPORTANT]
-> Jika `callbackUrl` tidak sesuai dengan webhook path, maka callback dari XenithPay tidak akan diterima oleh N8N dan flow Callback Payin / Callback Payout tidak akan berjalan. Pastikan URL publik (ngrok/domain production) aktif dan path-nya sama persis.
->
-> Jangan gunakan **Test URL** (`/webhook-test/`) sebagai `callbackUrl` — URL ini hanya aktif sementara saat debugging di N8N UI.
+> Jika URL pada Global Variables tidak sesuai dengan webhook path, maka callback (notifikasi) dari XenithPay tidak akan diterima oleh N8N. Flow Callback Payin dan Payout tidak akan berjalan. Pastikan URL publik aktif dan path sama persis.
+
 
 ### 2. Database (PostgreSQL)
 
@@ -491,10 +490,11 @@ Signature di-encode dalam **Base64**.
 1. Buat tabel `payment_channels` dan `payout_channels` di PostgreSQL
 2. Isi dengan data channel yang tersedia
 
-### Langkah 4 — Setup Callback URL
+### Langkah 4 — Setup Global Variables (Konfigurasi URL)
 
-1. Gunakan **ngrok** atau public URL lain untuk expose N8N
-2. Update `callbackUrl` di kedua Code node (Payin & Payout)
+1. Buka tab Credentials di N8N dan edit `WeselAja Global Variables`
+2. Pastikan Format di-set `Key-value pairs`
+3. Masukkan `xenithpayEndpoint`, `callbackUrl` (dengan public URL aktif N8N / ngrok), dan `redirectUrl` sesuai petunjuk konfigurasi sebelumnya.
 
 ### Langkah 5 — Activate Workflow
 
@@ -535,11 +535,10 @@ Workflow ini dikonfigurasi untuk environment **sandbox**. Untuk beralih ke **pro
 
 | Node | Yang diganti |
 |------|-------------|
-| `HTTP: Create Xenith Payin` | URL → `https://openapi.xenithpay.com/v1/payins` |
-| `HTTP: Create Xenith Payout` | URL → `https://openapi.xenithpay.com/v1/payouts` |
+| `HTTP: Create Xenith Payin` | URL -> Ubah URL domain di Global Variables ke `https://openapi.xenithpay.com` |
+| `HTTP: Create Xenith Payout` | URL -> Ubah URL domain di Global Variables ke `https://openapi.xenithpay.com` |
 | `HTTP: Simulate Xenith Payin Transaction` | ⚠️ Hapus/nonaktifkan — simulator hanya untuk sandbox |
-| `Code: Build Xenith Payin Requests` | `callbackUrl` → URL production N8N Anda |
-| `Code: Build Xenith Payout Payload` | `callbackUrl` → URL production N8N Anda |
+| URL Endpoint dan Webhook Callback | Ubah via credential `WeselAja Global Variables` N8N |
 
 > [!WARNING]
 > Flow **Simulate Payin** hanya tersedia di environment sandbox. Di production, pembayaran dilakukan langsung oleh customer melalui channel yang dipilih, dan callback dikirim otomatis oleh XenithPay.
