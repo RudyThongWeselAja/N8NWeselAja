@@ -69,15 +69,15 @@ Sebelum mengimpor workflow, pastikan credential berikut sudah dikonfigurasi di N
 
 ### 1. Create Invoice (Payin)
 
-Membuat invoice pembayaran baru melalui form N8N dan mengirimkan detail ke XenithPay API.
+Membuat invoice pembayaran baru melalui webhook GET request dan mengirimkan detail ke XenithPay API.
 
 **Alur Node:**
 
 ```
-Form: Create Invoice
+Webhook: /webhook/create-invoice (GET)
     │
     ▼
-Postgres: Get Payment Channel ─── Ambil method & channel dari DB
+Postgres: Get Payment Channel ─── Ambil method & channel dari DB berdasarkan paymentName
     │
     ▼
 Code: Build Xenith Payin Requests ─── Susun body & signature payload
@@ -97,21 +97,31 @@ Check: Has QRIS Payment Option?
     └── Tidak ──────────────────────────────▶ Email: Send Invoice Payment Options
 ```
 
-**Form Fields:**
+**Query Parameters (GET):**
 
-| Field               | Tipe     | Keterangan                                                    |
+| Parameter           | Tipe     | Keterangan                                                    |
 | ------------------- | -------- | ------------------------------------------------------------- |
-| Customer Name       | Text     | Nama customer                                                 |
-| Customer Email      | Text     | Email tujuan pengiriman invoice                               |
-| Jumlah Dana         | Number   | Nominal pembayaran (IDR)                                      |
-| Metode Pembayaran   | Dropdown | QRIS, VA Bank Mandiri, VA BRI, DANA                           |
-| Nomor Telepon/Hp    | Number   | Nomor telepon customer                                        |
-| Reference Code      | Text     | Kode referensi unik                                           |
-| Description         | Text     | Deskripsi transaksi                                           |
+| `customerName`      | String   | Nama customer                                                 |
+| `email`             | String   | Email tujuan pengiriman invoice                               |
+| `initiated_amount`  | Number   | Nominal pembayaran (IDR)                                      |
+| `paymentName`       | String   | Nama metode pembayaran (harus cocok dengan kolom `name` di tabel `payment_channels`) |
+| `phone_number`      | String   | Nomor telepon customer                                        |
+| `referenceCode`     | String   | Kode referensi unik                                           |
+| `description`       | String   | Deskripsi transaksi                                           |
+
+**Contoh Request:**
+
+```
+# Test (saat klik 'Listen for test event' di N8N UI)
+GET https://<n8n-url>/webhook-test/create-invoice?customerName=John&email=john@example.com&initiated_amount=50000&paymentName=QRIS&phone_number=08123456789&referenceCode=REF-001&description=Pembayaran+Produk
+
+# Production (saat workflow aktif)
+GET https://<n8n-url>/webhook/create-invoice?customerName=John&email=john@example.com&initiated_amount=50000&paymentName=QRIS&phone_number=08123456789&referenceCode=REF-001&description=Pembayaran+Produk
+```
 
 **Endpoint:** `POST https://openapi.sandbox.xenithpay.com/v1/payins`
 
-> **Catatan tentang `customerReference`:** Pada template ini, field `Customer Email` digunakan sebagai nilai `customerReference` di XenithPay API. Ini **hanya contoh implementasi** agar workflow bisa langsung mengirim email notifikasi ke customer. Pada praktiknya, `customerReference` adalah field bebas (free-text) — Anda bisa mengisi ID pelanggan, nomor order, atau identifier apapun sesuai kebutuhan bisnis Anda.
+> **Catatan tentang `customerReference`:** Pada template ini, query parameter `email` digunakan sebagai nilai `customerReference` di XenithPay API. Ini **hanya contoh implementasi** agar workflow bisa langsung mengirim email notifikasi ke customer. Pada praktiknya, `customerReference` adalah field bebas (free-text) — Anda bisa mengisi ID pelanggan, nomor order, atau identifier apapun sesuai kebutuhan bisnis Anda.
 
 **Output:** Email invoice dikirim ke customer berisi detail pembayaran. Jika metode QRIS, email menyertakan gambar QR Code sebagai attachment.
 
@@ -124,10 +134,10 @@ Digunakan khusus di environment **sandbox** untuk mensimulasikan hasil pembayara
 **Alur Node:**
 
 ```
-Form: Simulate Payin
+Webhook: /webhook/simulate-payin (GET)
     │
     ▼
-Code: Build Simulate Payin Payload ─── Susun body simulasi (transactionId, status dari form)
+Code: Build Simulate Payin Payload ─── Susun body simulasi (transactionId, status dari query)
     │
     ▼
 Crypto: Create Simulate Payin Signature ─── HMAC-SHA256 sign payload
@@ -136,12 +146,22 @@ Crypto: Create Simulate Payin Signature ─── HMAC-SHA256 sign payload
 HTTP: Simulate Xenith Payin Transaction ─── POST ke /v1/simulator/transaction
 ```
 
-**Form Fields:**
+**Query Parameters (GET):**
 
-| Field                | Tipe     | Keterangan                                                  |
+| Parameter            | Tipe     | Keterangan                                                  |
 | -------------------- | -------- | ----------------------------------------------------------- |
-| Pay In ID            | Text     | Transaction ID yang didapat dari response Create Invoice     |
-| Transaction Status   | Dropdown | Status simulasi: `SUCCESS`, `FAILED`, atau `EXPIRED`         |
+| `payin_id`           | String   | Transaction ID yang didapat dari response Create Invoice     |
+| `transaction_status` | String   | Status simulasi: `SUCCESS`, `FAILED`, atau `EXPIRED`         |
+
+**Contoh Request:**
+
+```
+# Test
+GET https://<n8n-url>/webhook-test/simulate-payin?payin_id=txn_abc123&transaction_status=SUCCESS
+
+# Production
+GET https://<n8n-url>/webhook/simulate-payin?payin_id=txn_abc123&transaction_status=SUCCESS
+```
 
 **Transaction Status Options:**
 
@@ -201,10 +221,10 @@ Membuat disbursement/penarikan dana ke rekening bank atau e-wallet customer.
 **Alur Node:**
 
 ```
-Form: Create Payout
+Webhook: /webhook/create-payout (GET)
     │
     ▼
-Postgres: Get Payout Channel ─── Ambil method & channel dari DB
+Postgres: Get Payout Channel ─── Ambil method & channel dari DB berdasarkan payoutName
     │
     ▼
 Code: Build Xenith Payout Payload ─── Susun body & signature payload
@@ -219,15 +239,25 @@ Crypto: Generate Payout Idempotency Key ─── Generate UUID idempotency key
 HTTP: Create Xenith Payout ─── POST ke /v1/payouts
 ```
 
-**Form Fields:**
+**Query Parameters (GET):**
 
-| Field              | Tipe     | Keterangan                                         |
-| ------------------ | -------- | -------------------------------------------------- |
-| Jumlah Dana        | Number   | Nominal penarikan (IDR)                            |
-| Metode Penarikan   | Dropdown | Bank Central Asia (BCA), DANA, LinkAja              |
-| Nomor Rekening     | Text     | Nomor rekening/akun tujuan                          |
-| Nama pada Rekening | Text     | Nama pemilik rekening tujuan                        |
-| Email              | Text     | Email untuk notifikasi status payout                |
+| Parameter                      | Tipe     | Keterangan                                                    |
+| ------------------------------ | -------- | ------------------------------------------------------------- |
+| `amount`                       | Number   | Nominal penarikan (IDR)                                       |
+| `payoutName`                   | String   | Nama metode payout (harus cocok dengan kolom `name` di tabel `payout_channels`) |
+| `destinationPayoutAccount`     | String   | Nomor rekening/akun tujuan                                    |
+| `destinationPayoutAccountName` | String   | Nama pemilik rekening tujuan                                  |
+| `email`                        | String   | Email untuk notifikasi status payout                          |
+
+**Contoh Request:**
+
+```
+# Test
+GET https://<n8n-url>/webhook-test/create-payout?amount=100000&payoutName=Bank%20Central%20Asia%20(BCA)&destinationPayoutAccount=1234567890&destinationPayoutAccountName=John&email=john@example.com
+
+# Production
+GET https://<n8n-url>/webhook/create-payout?amount=100000&payoutName=Bank%20Central%20Asia%20(BCA)&destinationPayoutAccount=1234567890&destinationPayoutAccountName=John&email=john@example.com
+```
 
 **Endpoint:** `POST https://openapi.sandbox.xenithpay.com/v1/payouts`
 
@@ -269,7 +299,7 @@ Check: Xenith Payout Signature Valid?
 
 | # | Node Name | Tipe | Flow | Keterangan |
 |---|-----------|------|------|------------|
-| 1 | `Form: Create Invoice` | Form Trigger | Create Invoice | Form input untuk membuat payin baru |
+| 1 | `Webhook` | Webhook (GET) | Create Invoice | Menerima request GET dengan query parameters untuk membuat payin baru |
 | 2 | `Postgres: Get Payment Channel` | PostgreSQL | Create Invoice | Query tabel `payment_channels` berdasarkan nama metode |
 | 3 | `Code: Build Xenith Payin Requests` | Code | Create Invoice | Menyusun request body dan signature payload untuk payin |
 | 4 | `Crypto: Create Xenith Payin Signature` | Crypto | Create Invoice | Generate HMAC-SHA256 signature untuk autentikasi request |
@@ -278,7 +308,7 @@ Check: Xenith Payout Signature Valid?
 | 7 | `Check: Has QRIS Payment Option?` | IF | Create Invoice | Cek apakah metode pembayaran adalah QR_CODE |
 | 8 | `HTTP: Generate QRIS Image` | HTTP Request | Create Invoice | Generate gambar QR Code dari payment code |
 | 9 | `Email: Send Invoice Payment Options` | Email Send | Create Invoice | Kirim email invoice ke customer |
-| 10 | `Form: Simulate Payin` | Form Trigger | Simulate Payin | Form input Payin ID dan Transaction Status untuk simulasi |
+| 10 | `Webhook: Simulate Payin` | Webhook (GET) | Simulate Payin | Menerima request GET dengan payin_id dan transaction_status untuk simulasi |
 | 11 | `Code: Build Simulate Payin Payload` | Code | Simulate Payin | Menyusun body simulasi transaksi dengan status yang dipilih |
 | 12 | `Crypto: Create Simulate Payin Signature` | Crypto | Simulate Payin | Generate signature untuk request simulasi |
 | 13 | `HTTP: Simulate Xenith Payin Transaction` | HTTP Request | Simulate Payin | Kirim request simulasi ke XenithPay sandbox |
@@ -287,7 +317,7 @@ Check: Xenith Payout Signature Valid?
 | 16 | `Crypto: Create Expected Xenith Signature` | Crypto | Callback Payin | Generate expected signature untuk perbandingan |
 | 17 | `Check: Xenith Signature Valid?` | IF | Callback Payin | Validasi apakah signature cocok |
 | 18 | `Email: Send Payin Status Notification` | Email Send | Callback Payin | Kirim notifikasi status pembayaran (SUCCESS/FAILED/EXPIRED) |
-| 19 | `Form: Create Payout` | Form Trigger | Create Payout | Form input untuk membuat payout baru |
+| 19 | `Webhook: Create Payout` | Webhook (GET) | Create Payout | Menerima request GET dengan query parameters untuk membuat payout baru |
 | 20 | `Postgres: Get Payout Channel` | PostgreSQL | Create Payout | Query tabel `payout_channels` berdasarkan nama metode |
 | 21 | `Code: Build Xenith Payout Payload` | Code | Create Payout | Menyusun request body dan signature payload untuk payout |
 | 22 | `Crypto: Create Xenith Payout Signature` | Crypto | Create Payout | Generate HMAC-SHA256 signature untuk request payout |
@@ -363,7 +393,7 @@ CREATE TABLE IF NOT EXISTS payment_channels (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   method VARCHAR NOT NULL,       -- Metode pembayaran XenithPay (QR_CODE, VIRTUAL_ACCOUNT, EWALLET, dll)
   channel VARCHAR NOT NULL,      -- Kode channel XenithPay (QRIS, BRI.VA, DANA, dll)
-  name VARCHAR NOT NULL,         -- Nama tampilan di form (QRIS, VA BANK MANDIRI, dll)
+  name VARCHAR NOT NULL,         -- Nama metode pembayaran (value untuk query param paymentName)
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -372,7 +402,7 @@ CREATE TABLE IF NOT EXISTS payout_channels (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   method VARCHAR NOT NULL,       -- Metode payout XenithPay (BANK_TRANSFER, EWALLET)
   channel VARCHAR NOT NULL,      -- Kode channel XenithPay (CENAIDJA, DANA, dll)
-  name VARCHAR NOT NULL,         -- Nama tampilan di form (Bank Central Asia (BCA), DANA, dll)
+  name VARCHAR NOT NULL,         -- Nama metode payout (value untuk query param payoutName)
   created_at TIMESTAMPTZ DEFAULT now()
 );
 ```
@@ -402,7 +432,7 @@ psql -h <host> -U <user> -d <database> -f payout_channels_rows.sql
 | `id`       | UUID          | Primary key                                             | `248d9fd4-...`       |
 | `method`   | VARCHAR       | Metode pembayaran XenithPay                              | `QR_CODE`, `VIRTUAL_ACCOUNT`, `EWALLET` |
 | `channel`  | VARCHAR       | Kode channel spesifik XenithPay                          | `QRIS`, `BRI.VA`, `DANA` |
-| `name`     | VARCHAR       | Nama tampilan yang muncul di form dropdown               | `QRIS`, `VA BANK RAKYAT INDONESIA` |
+| `name`     | VARCHAR       | Nama metode pembayaran (value untuk query param `paymentName`) | `QRIS`, `VA BANK RAKYAT INDONESIA` |
 | `created_at` | TIMESTAMPTZ | Waktu pembuatan record                                  | `2026-04-18 07:21:38` |
 
 **`payout_channels`** — Mapping metode payout (Disbursement):
@@ -412,11 +442,11 @@ psql -h <host> -U <user> -d <database> -f payout_channels_rows.sql
 | `id`       | UUID          | Primary key                                             | `8c0b607a-...`       |
 | `method`   | VARCHAR       | Metode payout XenithPay                                  | `BANK_TRANSFER`, `EWALLET` |
 | `channel`  | VARCHAR       | Kode channel spesifik XenithPay (SWIFT code untuk bank)  | `CENAIDJA`, `DANA`, `GOPAY` |
-| `name`     | VARCHAR       | Nama tampilan yang muncul di form dropdown               | `Bank Central Asia (BCA)`, `DANA` |
+| `name`     | VARCHAR       | Nama metode payout (value untuk query param `payoutName`)  | `Bank Central Asia (BCA)`, `DANA` |
 | `created_at` | TIMESTAMPTZ | Waktu pembuatan record                                  | `2026-04-18 07:21:38` |
 
 > [!NOTE]
-> Node `Postgres: Get Payment Channel` dan `Postgres: Get Payout Channel` melakukan query `SELECT` berdasarkan kolom `name` yang cocok dengan pilihan dropdown di form. Pastikan nilai `name` di database sama persis dengan opsi dropdown di form trigger.
+> Node `Postgres: Get Payment Channel` dan `Postgres: Get Payout Channel` melakukan query `SELECT` berdasarkan kolom `name` yang cocok dengan query parameter `paymentName` (payin) atau `payoutName` (payout) dari webhook GET request. Pastikan nilai `name` di database sama persis dengan nilai yang dikirim via query parameter.
 
 ### 3. Signature Generation
 
@@ -459,16 +489,16 @@ Signature di-encode dalam **Base64**.
 ### Langkah 5 — Activate Workflow
 
 1. Aktifkan workflow di N8N
-2. Akses form melalui:
-   - **Create Invoice:** `<n8n-url>/form/create-invoice`
-   - **Simulate Payin:** `<n8n-url>/form/simulate-payin`
-   - **Create Payout:** `<n8n-url>/form/create-payout`
+2. Akses endpoint melalui:
+   - **Create Invoice:** `<n8n-url>/webhook/create-invoice?customerName=...&email=...&initiated_amount=...&paymentName=...&phone_number=...&referenceCode=...&description=...`
+   - **Simulate Payin:** `<n8n-url>/webhook/simulate-payin?payin_id=...&transaction_status=SUCCESS`
+   - **Create Payout:** `<n8n-url>/webhook/create-payout?amount=...&payoutName=...&destinationPayoutAccount=...&destinationPayoutAccountName=...&email=...`
 
 ### Langkah 6 — Testing (Sandbox)
 
-1. Buat invoice melalui form Create Invoice
+1. Buat invoice melalui webhook GET request ke `/webhook/create-invoice` dengan query parameters yang sesuai
 2. Copy Transaction ID dari email invoice
-3. Simulasikan pembayaran melalui form Simulate Payin (pilih status: SUCCESS, FAILED, atau EXPIRED)
+3. Simulasikan pembayaran melalui GET request ke `/webhook/simulate-payin?payin_id=...&transaction_status=SUCCESS` (atau FAILED/EXPIRED)
 4. Cek email untuk notifikasi status pembayaran sesuai status yang dipilih
 
 ---
@@ -524,12 +554,11 @@ Semua node mengikuti format penamaan yang konsisten:
 
 | Prefix     | Tipe Node     | Contoh                                  |
 | ---------- | ------------- | --------------------------------------- |
-| `Form:`    | Form Trigger  | `Form: Create Invoice`                  |
+| `Webhook:` | Webhook       | `Webhook: Simulate Payin`               |
 | `Postgres:`| PostgreSQL    | `Postgres: Get Payment Channel`         |
 | `Code:`    | Code (JS)     | `Code: Build Xenith Payin Requests`     |
 | `Crypto:`  | Crypto        | `Crypto: Create Xenith Payin Signature` |
 | `HTTP:`    | HTTP Request  | `HTTP: Create Xenith Payin`             |
 | `Check:`   | IF Condition  | `Check: Has QRIS Payment Option?`       |
 | `Email:`   | Email Send    | `Email: Send Invoice Payment Options`   |
-| `Webhook:` | Webhook       | `Webhook: Xenith Payin Callback`        |
 | `Note:`    | Sticky Note   | `Note: Create Invoice Flow`             |
