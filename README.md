@@ -190,7 +190,7 @@ Menerima webhook callback dari XenithPay setelah pembayaran diproses. Melakukan 
 **Alur Node:**
 
 ```
-Webhook: Xenith Payin Callback ─── POST /webhook/xenith-payin-sandbox
+Webhook: Xenith Payin Callback ─── POST /webhook/xenith-payin
     │
     ▼
 Code: Build Signature Validation Payload ─── Extract header signature & build payload
@@ -204,7 +204,7 @@ Check: Xenith Signature Valid?
     └── Invalid ──▶ (no action)
 ```
 
-**Webhook Path:** `/webhook/xenith-payin-sandbox` (POST)
+**Webhook Path:** `/webhook/xenith-payin` (POST)
 
 **Validasi:**
 - Membandingkan `x-xenith-signature` dari header request dengan expected signature yang di-generate menggunakan `xenith-web-signature-secret`
@@ -279,7 +279,7 @@ Menerima webhook callback dari XenithPay setelah payout diproses. Melakukan vali
 **Alur Node:**
 
 ```
-Webhook: Xenith Payout Callback ─── POST /webhook/xenith-payout-sandbox
+Webhook: Xenith Payout Callback ─── POST /webhook/xenith-payout
     │
     ▼
 Code: Build Payout Signature Validation Payload ─── Extract header signature & build payload
@@ -293,7 +293,7 @@ Check: Xenith Payout Signature Valid?
     └── Invalid / Gagal ──────▶ (no action)
 ```
 
-**Webhook Path:** `/webhook/xenith-payout-sandbox` (POST)
+**Webhook Path:** `/webhook/xenith-payout` (POST)
 
 **Validasi:**
 - Signature matching (`x-xenith-signature` vs expected signature)
@@ -354,8 +354,8 @@ Template ini menggunakan *community node* `n8n-nodes-globals` untuk mengakses va
 
 ```text
 xenithpayEndpoint=https://openapi.sandbox.xenithpay.com
-callbackUrlPayin=https://<your-public-url>/webhook/xenith-payin-sandbox
-callbackUrlPayout=https://<your-public-url>/webhook/xenith-payout-sandbox
+callbackUrlPayin=https://<your-public-url>/webhook/xenith-payin
+callbackUrlPayout=https://<your-public-url>/webhook/xenith-payout
 redirectUrl=https://www.weselaja.com/
 ```
 
