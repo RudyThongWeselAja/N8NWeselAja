@@ -9,10 +9,10 @@
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 1,
       "position": [
-        1088,
-        11856
+        1424,
+        14800
       ],
-      "id": "bc716980-6bf7-447c-ad7a-a801552cdbcd",
+      "id": "ef791bf0-f4aa-4d0a-9f90-eaa2bcb10772",
       "name": "Crypto: Generate Payin Idempotency Key"
     },
     {
@@ -50,10 +50,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1312,
-        11856
+        1648,
+        14800
       ],
-      "id": "9efefecb-4374-4455-b2d1-e0b151be947b",
+      "id": "7daa3cee-0b88-430d-9818-c8f30919c5f6",
       "name": "HTTP: Create Xenith Payin",
       "credentials": {
         "httpHeaderAuth": {
@@ -65,77 +65,15 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "35d36342-76e4-4242-8897-52333c22f746",
-              "leftValue": "={{ $json.paymentMethod=== \"QR_CODE\" }}",
-              "rightValue": "null",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        1536,
-        11856
-      ],
-      "id": "02bf4abc-aee7-45cf-b6fd-a0492cd1c87a",
-      "name": "Check: Has QRIS Payment Option?"
-    },
-    {
-      "parameters": {
-        "url": "https://api.qrserver.com/v1/create-qr-code/",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "size",
-              "value": "400x400"
-            },
-            {
-              "name": "data",
-              "value": "={{ $json.paymentCode }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1760,
-        11792
-      ],
-      "id": "9eca1ed3-2131-48d4-9e25-1ca1f55ac907",
-      "name": "HTTP: Generate QRIS Image",
-      "alwaysOutputData": false
-    },
-    {
-      "parameters": {
         "jsCode": "/**\n * Code: Build Xenith Payin Requests\n * \n * Menyusun request body untuk pembuatan payin ke XenithPay API.\n * \n * Input:\n *   - Webhook -> initiated_amount, phone_number, referenceCode, email, customerName, description\n *   - Postgres: Get Payment Channel -> method, channel\n * \n * Output:\n *   - signaturePayload: string payload yang akan di-sign dengan HMAC-SHA256\n *   - timestamp: ISO timestamp untuk header Xenith-Request-Timestamp\n *   - body: object request body untuk POST /v1/payins\n * \n * Catatan:\n *   - customerReference diisi dengan email sebagai contoh (bisa diganti identifier lain)\n *   - callbackUrl HARUS mengarah ke path yang sama dengan node 'Webhook: Xenith Payin Callback'\n *     yaitu /webhook/xenith-payin-sandbox. Jika tidak cocok, callback dari XenithPay\n *     tidak akan diterima dan flow Callback Payin tidak akan berjalan.\n *   - Atur callbackUrlPayin, redirectUrl, dan xenithpayEndpoint via credential 'WeselAja Global Variables'\n * \n * Webhook URL di N8N (node Webhook: Xenith Payin Callback):\n *   - Test URL       : http://<n8n-host>/webhook-test/xenith-payin-sandbox\n *   - Production URL : http://<n8n-host>/webhook/xenith-payin-sandbox\n *   callbackUrl HARUS menggunakan format Production URL (/webhook/), bukan Test URL\n *   (/webhook-test/), karena XenithPay mengirim callback saat workflow aktif (production mode).\n *   Test URL hanya aktif saat klik 'Listen for test event' di N8N UI.\n */\n\n// Susun request body dari data form dan payment channel DB\nconst body = {\n  initiatedAmount: $('Webhook: Create Invoice').first().json.query.initiated_amount,\n  currency: 'IDR',\n  paymentMethod: $input.first().json.method,\n  paymentChannel: $input.first().json.channel,\n  customerPhoneNumber: $('Webhook: Create Invoice').first().json.query.phone_number,\n  referenceCode: $('Webhook: Create Invoice').first().json.query.referenceCode,\n  customerReference: $('Webhook: Create Invoice').first().json.query.email,\n  customerName: $('Webhook: Create Invoice').first().json.query.customerName,\n  description: $('Webhook: Create Invoice').first().json.query.description,\n  // callbackUrl harus menggunakan Production URL (/webhook/)\n  callbackUrl: $('Globals: Get Payin Constants').first().json.constants.callbackUrlPayin,\n  redirectUrl: $('Globals: Get Payin Constants').first().json.constants.redirectUrl,\n};\n\n// Susun signature payload sesuai format XenithPay: METHOD\\nURI\\nTIMESTAMP\\nBODY\nconst method = \"POST\";\nconst uri = \"/v1/payins\";\nconst timestamp = new Date().toISOString();\nconst signaturePayload = `${method}\\n${uri}\\n${timestamp}\\n${JSON.stringify(body)}`;\n\nreturn {\n  json:{signaturePayload, timestamp, body}\n}"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        640,
-        11856
+        976,
+        14800
       ],
-      "id": "7a017625-9e94-4cb2-9322-140987aa5c0b",
+      "id": "2654dd0a-2a41-4d68-be82-928add5e4f6d",
       "name": "Code: Build Xenith Payin Requests"
     },
     {
@@ -148,10 +86,10 @@
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 2,
       "position": [
-        864,
-        11856
+        1200,
+        14800
       ],
-      "id": "78bdec04-c0b6-4165-8272-00fb14679a00",
+      "id": "b0414da3-8444-480b-9a92-428b79fc3dbd",
       "name": "Crypto: Create Xenith Payin Signature",
       "credentials": {
         "crypto": {
@@ -162,17 +100,17 @@
     },
     {
       "parameters": {
-        "content": "# Create Invoice\n\n## Prasyarat\n- Install community node **n8n-nodes-globals**\n- Setup credential **WeselAja Global Variables** (Tipe: Global Constants Api). Set format ke **Key-value pairs**, lalu isi:\n  `xenithpayEndpoint=https://openapi.sandbox.xenithpay.com`\n  `callbackUrlPayin=https://<ur_n8n_anda>/webhook/xenith-payin-sandbox`\n  `callbackUrlPayout=https://<ur_n8n_anda>/webhook/xenith-payout-sandbox`\n  `redirectUrl=https://www.weselaja.com/`\n- Buat credential **PostgreSQL** di N8N (Settings > Credentials)\n- Buat tabel `payment_channels` dengan kolom: `id`, `method`, `channel`, `name`, `created_at`\n- Seed data dari file `payment_channels_rows.sql` pada https://github.com/RudyThongWeselAja/N8NWeselAja/blob/main/payment_channels_rows.sql\n\n## Alur\nWebhook (GET) > Globals: Get Payin Constants > Postgres: Get Payment Channel > Code: Build Request > Crypto: Sign > Crypto: Idempotency > HTTP: Create Payin > Check QRIS > Email Invoice\n\n## Input (GET Query Parameters)\n- `customerName`: Nama customer\n- `email`: Email tujuan pengiriman invoice (juga dipakai sebagai customerReference)\n- `initiated_amount`: Nominal pembayaran dalam IDR (contoh: 50000)\n- `paymentChannel`: Kode channel pembayaran, harus sesuai kolom `channel` di tabel `payment_channels` (contoh: QRIS, BRI.VA)\n- `phone_number`: Nomor telepon customer\n- `referenceCode`: Kode referensi unik transaksi\n- `description`: Deskripsi/keterangan transaksi\n\n## Contoh Request\n- **Test:** `GET /webhook-test/create-invoice?customerName=John&email=example@customer.com&initiated_amount=50000&paymentChannel=BRI.VA&phone_number=08123456789&referenceCode=REF-001&description=Pembayaran+Produk`\n- **Production:** `GET /webhook/create-invoice?customerName=John&email=example@customer.com&initiated_amount=50000&paymentChannel=BRI.VA&phone_number=08123456789&referenceCode=REF-001&description=Pembayaran+Produk`\n\n## XenithPay API\n- **Sandbox:** `https://openapi.sandbox.xenithpay.com/v1/payins`\n- **Production:** `https://openapi.xenithpay.com/v1/payins`\nGanti Base URL via credential `WeselAja Global Variables` saat pindah ke production.\n",
-        "height": 944,
+        "content": "# Create Invoice\n\n## Prasyarat\n- Install community node **n8n-nodes-globals**\n- Setup credential **WeselAja Global Variables** (Tipe: Global Constants Api). Set format ke **Key-value pairs**, lalu isi:\n  `xenithpayEndpoint=https://openapi.sandbox.xenithpay.com`\n  `callbackUrlPayin=https://<ur_n8n_anda>/webhook/xenith-payin-sandbox`\n  `callbackUrlPayout=https://<ur_n8n_anda>/webhook/xenith-payout-sandbox`\n  `redirectUrl=https://www.weselaja.com/`\n- Buat credential **PostgreSQL** di N8N (Settings > Credentials)\n- Buat tabel `payment_channels` dengan kolom: `id`, `method`, `channel`, `name`, `created_at`\n- Seed data dari file `payment_channels_rows.sql` pada https://github.com/RudyThongWeselAja/N8NWeselAja/blob/main/payment_channels_rows.sql\n\n## Alur\nWebhook (GET) > Globals: Get Payin Constants > Postgres: Get Payment Channel > Code: Build Request > Crypto: Sign > Crypto: Idempotency > HTTP: Create Payin > Email Invoice\n\n## Input (GET Query Parameters)\n- `customerName`: Nama customer\n- `email`: Email tujuan pengiriman invoice (juga dipakai sebagai customerReference)\n- `initiated_amount`: Nominal pembayaran dalam IDR (contoh: 50000)\n- `paymentChannel`: Kode channel pembayaran, harus sesuai kolom `channel` di tabel `payment_channels` (contoh: QRIS, BRI.VA)\n- `phone_number`: Nomor telepon customer\n- `referenceCode`: Kode referensi unik transaksi\n- `description`: Deskripsi/keterangan transaksi\n\n## Contoh Request\n- **Test:** `GET /webhook-test/create-invoice?customerName=John&email=example@customer.com&initiated_amount=50000&paymentChannel=BRI.VA&phone_number=08123456789&referenceCode=REF-001&description=Pembayaran+Produk`\n- **Production:** `GET /webhook/create-invoice?customerName=John&email=example@customer.com&initiated_amount=50000&paymentChannel=BRI.VA&phone_number=08123456789&referenceCode=REF-001&description=Pembayaran+Produk`\n\n## XenithPay API\n- **Sandbox:** `https://openapi.sandbox.xenithpay.com/v1/payins`\n- **Production:** `https://openapi.xenithpay.com/v1/payins`\nGanti Base URL via credential `WeselAja Global Variables` saat pindah ke production.\n",
+        "height": 1008,
         "width": 2444
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -208,
-        11104
+        96,
+        14016
       ],
       "typeVersion": 1,
-      "id": "04232563-76ec-4a4f-81e8-0ff2de645748",
+      "id": "a84742f6-9ce9-42da-85a9-6423af6abfc4",
       "name": "Note: Create Invoice Flow"
     },
     {
@@ -203,10 +141,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        416,
-        11856
+        752,
+        14800
       ],
-      "id": "b80d62ca-d776-440d-8982-7dc70f8f7987",
+      "id": "2a0c313c-1b2d-416a-9e0b-1839d78b314d",
       "name": "Postgres: Get Payment Channel",
       "credentials": {
         "postgres": {
@@ -220,7 +158,7 @@
         "fromEmail": "cs@weselaja.com",
         "toEmail": "={{ $json.customerReference }}",
         "subject": "=Invoice Pembayaran • {{ $json.customerName }} • Rp {{ new Intl.NumberFormat('id-ID').format(Number($json.initiatedAmount)) }}",
-        "html": "=<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Invoice</title>\n</head>\n<body style=\"font-family: Arial, sans-serif; background-color:#f6f6f6; padding:20px;\">\n  \n  <div style=\"max-width:600px; margin:auto; background:#ffffff; padding:24px; border-radius:10px;\">\n    \n    <h2 style=\"color:#333; margin-bottom:5px;\">Invoice</h2>\n    <p style=\"color:#777; font-size:14px;\">Detail transaksi Anda</p>\n\n    <!-- ID Transaksi + keterangan -->\n    <div style=\"margin-top:10px;\">\n      <p style=\"font-size:13px; color:#999; margin:0;\">\n        Transaction ID: <strong>{{$json.id}}</strong>\n      </p>\n      <p style=\"font-size:12px; color:#bbb; margin-top:3px;\">\n        Gunakan ID ini untuk simulate payin di environment sandbox.\n      </p>\n    </div>\n\n    <hr style=\"margin:20px 0;\">\n\n    <p><strong>Customer:</strong> {{$json.customerName}}</p>\n\n    <p><strong>Payment Channel:</strong> \n      {{ $('Postgres: Get Payment Channel').item.json.name }}\n    </p>\n\n    <table style=\"width:100%; border-collapse:collapse; margin-top:20px;\">\n      <tr>\n        <td style=\"padding:10px 0;\">Amount</td>\n        <td style=\"text-align:right;\">\n          Rp {{ new Intl.NumberFormat('id-ID').format(Number($json.initiatedAmount)) }}\n        </td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 0;\">Fee</td>\n        <td style=\"text-align:right;\">\n          Rp {{ new Intl.NumberFormat('id-ID').format(Number($json.feeAmount || 0)) }}\n        </td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 0; border-top:1px solid #eee;\"><strong>Total</strong></td>\n        <td style=\"text-align:right; border-top:1px solid #eee;\">\n          <strong>\n            Rp {{ new Intl.NumberFormat('id-ID').format(\n              Number($json.initiatedAmount) + Number($json.feeAmount || 0)\n            ) }}\n          </strong>\n        </td>\n      </tr>\n    </table>\n\n    <!-- Conditional Payment -->\n    <div style=\"text-align:center; margin-top:20px;\">\n      \n      {{\n        $json.paymentChannel?.toUpperCase() === 'QRIS'\n        ? `<div>\n            <p style=\"font-size:14px; color:#555; margin-bottom:10px;\">\n              Scan QRIS untuk pembayaran\n            </p>\n            <img src=\"cid:data\" alt=\"QRIS\" style=\"max-width:250px; width:100%; border-radius:8px;\" />\n          </div>`\n        : `<div>\n            <p style=\"font-size:14px; color:#555; margin-bottom:8px;\">\n              Kode Pembayaran\n            </p>\n            <p style=\"font-size:20px; font-weight:bold; letter-spacing:2px;\">\n              ${$json.paymentCode || '-'}\n            </p>\n          </div>`\n      }}\n\n    </div>\n\n    <div style=\"margin-top:20px;\">\n      <strong>Description:</strong>\n      <p style=\"margin-top:5px; color:#555;\">\n        {{$json.description || '-'}}\n      </p>\n    </div>\n\n    <hr style=\"margin:25px 0;\">\n\n    <p style=\"font-size:14px; color:#666;\">\n      Terima kasih atas transaksi Anda.\n    </p>\n\n  </div>\n\n</body>\n</html>",
+        "html": "=<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Invoice</title>\n</head>\n<body style=\"font-family: Arial, sans-serif; background-color:#f6f6f6; padding:20px;\">\n  \n  <div style=\"max-width:600px; margin:auto; background:#ffffff; padding:24px; border-radius:10px;\">\n    \n    <h2 style=\"color:#333; margin-bottom:5px;\">Invoice</h2>\n    <p style=\"color:#777; font-size:14px;\">Detail transaksi Anda</p>\n\n    <!-- ID Transaksi -->\n    <div style=\"margin-top:10px;\">\n      <p style=\"font-size:13px; color:#999; margin:0;\">\n        Transaction ID: <strong>{{$json.id}}</strong>\n      </p>\n      <p style=\"font-size:12px; color:#bbb; margin-top:3px;\">\n        Gunakan ID ini untuk simulate payin di environment sandbox.\n      </p>\n    </div>\n\n    <hr style=\"margin:20px 0;\">\n\n    <p><strong>Customer:</strong> {{$json.customerName}}</p>\n\n    <p><strong>Payment Channel:</strong> \n      {{ $('Postgres: Get Payment Channel').item.json.name }}\n    </p>\n\n    <table style=\"width:100%; border-collapse:collapse; margin-top:20px;\">\n      <tr>\n        <td style=\"padding:10px 0;\">Amount</td>\n        <td style=\"text-align:right;\">\n          Rp {{ new Intl.NumberFormat('id-ID').format(Number($json.initiatedAmount)) }}\n        </td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 0;\">Fee</td>\n        <td style=\"text-align:right;\">\n          Rp {{ new Intl.NumberFormat('id-ID').format(Number($json.feeAmount || 0)) }}\n        </td>\n      </tr>\n      <tr>\n        <td style=\"padding:10px 0; border-top:1px solid #eee;\"><strong>Total</strong></td>\n        <td style=\"text-align:right; border-top:1px solid #eee;\">\n          <strong>\n            Rp {{ new Intl.NumberFormat('id-ID').format(\n              Number($json.initiatedAmount) + Number($json.feeAmount || 0)\n            ) }}\n          </strong>\n        </td>\n      </tr>\n    </table>\n\n    <!-- Payment Reference (Universal) -->\n    <div style=\"text-align:center; margin-top:20px;\">\n      <p style=\"font-size:14px; color:#555; margin-bottom:8px;\">\n        Payment Reference\n      </p>\n      <p style=\"font-size:16px; font-weight:bold; word-break:break-all;\">\n        {{$json.paymentUrl || $json.paymentCode || '-'}}\n      </p>\n    </div>\n\n    <div style=\"margin-top:20px;\">\n      <strong>Description:</strong>\n      <p style=\"margin-top:5px; color:#555;\">\n        {{$json.description || '-'}}\n      </p>\n    </div>\n\n    <hr style=\"margin:25px 0;\">\n\n    <p style=\"font-size:14px; color:#666;\">\n      Terima kasih atas transaksi Anda.\n    </p>\n\n  </div>\n\n</body>\n</html>",
         "options": {
           "appendAttribution": false,
           "attachments": "data"
@@ -229,10 +167,10 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        1984,
-        11856
+        1952,
+        14784
       ],
-      "id": "e85feaa0-fd9a-4cdf-987f-dd74cf103266",
+      "id": "8b8207e2-9fbe-4a91-b7fe-97633f91d553",
       "name": "Email: Send Invoice Payment Options",
       "webhookId": "520bc1c5-2a76-4e78-b23f-98113fc8dcc6",
       "credentials": {
@@ -245,16 +183,16 @@
     {
       "parameters": {
         "content": "# Simulate Payin\n\n## Prasyarat\n- Menggunakan credential **WeselAja Global Variables** yang sudah disetup saat _Create Invoice_.\n\n## Alur\nWebhook (GET) > Globals: Get Simulate Constants > Code: Build Simulate Payload > Crypto: Sign > HTTP: Simulate Transaction\n\n## Input (GET Query Parameters)\n- `payin_id`: Transaction ID yang didapat dari response Create Invoice (dari email invoice)\n- `transaction_status`: Status simulasi — `SUCCESS`, `FAILED`, atau `EXPIRED`\n\n## Contoh Request\n- **Test:** `GET /webhook-test/simulate-payin?payin_id=txn_abc123&transaction_status=SUCCESS`\n- **Production:** `GET /webhook/simulate-payin?payin_id=txn_abc123&transaction_status=SUCCESS`\n\n## XenithPay API\n- **Sandbox:** `https://openapi.sandbox.xenithpay.com/v1/simulator/transaction`\n- **Production:** ❌ Tidak tersedia (simulator hanya untuk sandbox)\n\n## Status yang Didukung\n- **SUCCESS** — Pembayaran berhasil\n- **FAILED** — Pembayaran gagal\n- **EXPIRED** — Pembayaran kedaluwarsa\n",
-        "height": 576,
+        "height": 608,
         "width": 2236
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -208,
-        12112
+        96,
+        15088
       ],
       "typeVersion": 1,
-      "id": "7358e579-ddb1-4822-817b-43b897d8fa1e",
+      "id": "6a056109-222a-4ec2-a2ed-41adbd947917",
       "name": "Note: Simulate Payin Flow"
     },
     {
@@ -262,10 +200,10 @@
       "type": "n8n-nodes-globals.globalConstants",
       "typeVersion": 1,
       "position": [
-        704,
-        12528
+        1152,
+        15440
       ],
-      "id": "250d1bb8-8467-49c0-bc17-7c271b4fd21b",
+      "id": "5b7d3631-b862-4151-a140-98374e3bb0e0",
       "name": "Globals: Get Simulate Constants",
       "credentials": {
         "globalConstantsApi": {
@@ -281,10 +219,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        896,
-        12528
+        1344,
+        15440
       ],
-      "id": "42865909-3d43-4257-8830-a9e5cd8ccb14",
+      "id": "c97b1f90-79bc-448b-982f-cc4593866a22",
       "name": "Code: Build Simulate Payin Payload"
     },
     {
@@ -318,10 +256,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1280,
-        12528
+        1728,
+        15440
       ],
-      "id": "1fdbf7a1-47b7-47f9-9bbc-6d7b12722167",
+      "id": "f7472786-cbb1-4149-b1c0-e033e5d75b7e",
       "name": "HTTP: Simulate Xenith Payin Transaction",
       "credentials": {
         "httpHeaderAuth": {
@@ -340,10 +278,10 @@
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 2,
       "position": [
-        1088,
-        12528
+        1536,
+        15440
       ],
-      "id": "68dea5b9-b49f-44b1-902e-df299c600ed4",
+      "id": "55cd8980-fce6-4915-8fa4-fcec3da6bdf3",
       "name": "Crypto: Create Simulate Payin Signature",
       "credentials": {
         "crypto": {
@@ -360,10 +298,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        512,
-        12528
+        960,
+        15440
       ],
-      "id": "f287ae0e-ca12-4b4b-a6a1-58bfd58825c6",
+      "id": "3a38fad3-8a84-4130-9f21-41dccbde35c0",
       "name": "Webhook: Simulate Payin",
       "webhookId": "ce9d05e5-fd1d-4d90-b40f-12de93f1cc54"
     },
@@ -376,10 +314,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        272,
-        13120
+        592,
+        16144
       ],
-      "id": "c0e33932-8bed-46a6-9fbd-521436dd07fc",
+      "id": "7ccb9731-a8cb-4158-869f-7e697350354c",
       "name": "Webhook: Xenith Payin Callback",
       "webhookId": "9670673a-82dc-48ca-8afc-001d2e970eca"
     },
@@ -390,10 +328,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        496,
-        13120
+        816,
+        16144
       ],
-      "id": "c78af2be-1756-425d-aea3-abfa1b0a9eb3",
+      "id": "84c5253c-fbf6-4acb-9cc7-3492a6a36cef",
       "name": "Code: Build Signature Validation Payload"
     },
     {
@@ -424,10 +362,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        944,
-        13120
+        1264,
+        16144
       ],
-      "id": "7bfa9e35-cf1b-416a-923b-469dc73d6eeb",
+      "id": "8e0e2e28-e033-48c0-9b54-07df31baddc8",
       "name": "Check: Xenith Signature Valid?"
     },
     {
@@ -440,10 +378,10 @@
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 2,
       "position": [
-        720,
-        13120
+        1040,
+        16144
       ],
-      "id": "b14c938a-39b0-4105-afa1-6d03afffba0c",
+      "id": "a977faac-2cd6-4bc6-86b0-826060c60bd6",
       "name": "Crypto: Create Expected Xenith Signature",
       "credentials": {
         "crypto": {
@@ -460,11 +398,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -208,
-        12752
+        112,
+        15776
       ],
       "typeVersion": 1,
-      "id": "db4ad242-5f14-43a1-aa92-46eddbc88ed9",
+      "id": "cdaaece2-7879-4c21-8e8d-cacd4667f708",
       "name": "Note: Callback Payin Flow"
     },
     {
@@ -474,10 +412,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1120,
-        13936
+        1440,
+        16992
       ],
-      "id": "0b7c060d-60fb-40d4-85a7-3224bfeccafc",
+      "id": "339950e2-8b10-4a82-b7ef-e93051aea895",
       "name": "Code: Build Xenith Payout Payload"
     },
     {
@@ -488,10 +426,10 @@
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 1,
       "position": [
-        1568,
-        13936
+        1888,
+        16992
       ],
-      "id": "4ab47eea-65a5-4ec1-a506-acdaeb1f2f9b",
+      "id": "6b7594e2-ed1b-4626-bb2d-758b39ed4aa0",
       "name": "Crypto: Generate Payout Idempotency Key"
     },
     {
@@ -529,10 +467,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1792,
-        13936
+        2112,
+        16992
       ],
-      "id": "50067cb5-e437-4f90-aebf-e9a8e502bc98",
+      "id": "fc699602-0136-4935-b8ad-cccaf2c26e0b",
       "name": "HTTP: Create Xenith Payout",
       "credentials": {
         "httpHeaderAuth": {
@@ -552,10 +490,10 @@
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 2,
       "position": [
-        1344,
-        13936
+        1664,
+        16992
       ],
-      "id": "690dae68-e900-4916-981f-daf445f563ec",
+      "id": "49c36ad1-5e6c-43e1-85f9-b01c6dfdc7de",
       "name": "Crypto: Create Xenith Payout Signature",
       "credentials": {
         "crypto": {
@@ -572,10 +510,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        448,
-        13936
+        768,
+        16992
       ],
-      "id": "1e7524ce-5758-4ed7-904a-4b7a1470c062",
+      "id": "55340dee-699c-4618-8322-af619e8d43e8",
       "name": "Webhook: Create Payout",
       "webhookId": "019974d9-668d-4d6a-9550-a08d08e9fd0e"
     },
@@ -607,10 +545,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        896,
-        13936
+        1216,
+        16992
       ],
-      "id": "4e5400d1-47ce-46c5-b416-5a6dc4062fcc",
+      "id": "d2e08f5c-d457-42fb-993d-095d7ae40b3a",
       "name": "Postgres: Get Payout Channel",
       "credentials": {
         "postgres": {
@@ -628,10 +566,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        272,
-        14384
+        592,
+        17504
       ],
-      "id": "93f70b09-4414-45b3-9b87-2e62bd7c2c14",
+      "id": "6046a8d5-7dfb-4e2e-8d82-6179c7e75d7b",
       "name": "Webhook: Xenith Payout Callback",
       "webhookId": "02f343a7-7616-4243-872c-1d75671fe5e5"
     },
@@ -642,10 +580,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        496,
-        14384
+        816,
+        17504
       ],
-      "id": "6ba0c840-c6a8-412c-8e6e-3d0be4f540dd",
+      "id": "1ec644fd-9250-464b-b3b1-2931399fe122",
       "name": "Code: Build Payout Signature Validation Payload"
     },
     {
@@ -686,10 +624,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        944,
-        14384
+        1264,
+        17504
       ],
-      "id": "858d06d7-ad88-400a-961e-312fe3c4559c",
+      "id": "03d60c04-b9ee-4d5a-b9ff-ceb63834fd5e",
       "name": "Check: Xenith Payout Signature Valid?"
     },
     {
@@ -702,10 +640,10 @@
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 2,
       "position": [
-        720,
-        14384
+        1040,
+        17504
       ],
-      "id": "f852d2cb-845a-4764-b576-75e81332af56",
+      "id": "8b463a11-aa4d-4de0-9d6b-c242bfb3e8fa",
       "name": "Crypto: Create Expected Xenith Payout Signature",
       "credentials": {
         "crypto": {
@@ -722,26 +660,26 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -208,
-        14144
+        112,
+        17264
       ],
       "typeVersion": 1,
-      "id": "8c7a78b6-5803-45b7-809a-c07e9c1d0ce6",
+      "id": "1063031f-a801-4abd-b98e-48bc1f0ab234",
       "name": "Note: Callback Payout Flow"
     },
     {
       "parameters": {
         "content": "# Payout\n\n## Prasyarat\n- Install community node **n8n-nodes-globals**\n- Setup credential **WeselAja Global Variables** *(Jika sudah setup di tahap Create Invoice, lewati langkah ini)*\n- Buat credential **PostgreSQL** di N8N (Settings > Credentials)\n- Buat tabel `payout_channels` dengan kolom: `id`, `method`, `channel`, `name`, `created_at`\n- Seed data dari file `payout_channels_rows.sql` pada https://github.com/RudyThongWeselAja/N8NWeselAja/blob/main/payout_channels_rows.sql\n\n## Alur\nWebhook (GET) > Globals: Get Payout Constants > Postgres: Get Payout Channel > Code: Build Payload > Crypto: Sign > Crypto: Idempotency > HTTP: Create Payout\n\n## Input (GET Query Parameters)\n- `amount`: Nominal penarikan dalam IDR (contoh: 100000)\n- `payoutChannel`: Kode channel payout, harus sesuai kolom `channel` di tabel `payout_channels` (contoh: BCA, CENAIDJA)\n- `destinationPayoutAccount`: Nomor rekening/akun tujuan\n- `destinationPayoutAccountName`: Nama pemilik rekening tujuan\n- `email`: Email untuk notifikasi status payout (juga dipakai sebagai customerReference)\n\n## Contoh Request\n- **Test:** `GET /webhook-test/create-payout?amount=100000&payoutChannel=CENAIDJA&destinationPayoutAccount=555563765328&destinationPayoutAccountName=Andi+Prasetyo&email=example@customer.com`\n- **Production:** `GET /webhook/create-payout?amount=100000&payoutChannel=CENAIDJA&destinationPayoutAccount=555563765328&destinationPayoutAccountName=Andi+Prasetyo&email=example@customer.com`\n\n## XenithPay API\n- **Sandbox:** `https://openapi.sandbox.xenithpay.com/v1/payouts`\n- **Production:** `https://openapi.xenithpay.com/v1/payouts`\nGanti Base URL via credential `WeselAja Global Variables` saat pindah ke production.\n",
-        "height": 688,
+        "height": 736,
         "width": 2236
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -208,
-        13392
+        112,
+        16448
       ],
       "typeVersion": 1,
-      "id": "c8e0e94e-435b-4113-bf1d-cac64728047e",
+      "id": "25577a29-dfaa-4edc-aeaa-4e90ea801ff0",
       "name": "Note: Payout Flow"
     },
     {
@@ -757,10 +695,10 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        1216,
-        13104
+        1536,
+        16128
       ],
-      "id": "dd52c213-fcdd-4bc6-bfab-8d9f4ed03020",
+      "id": "77f72a00-cbaf-4c30-9c26-da40d7410672",
       "name": "Email: Send Payin Status Notification",
       "webhookId": "9abf634a-dc2a-4fc0-b746-fb8c24faa449",
       "credentials": {
@@ -783,10 +721,10 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        1232,
-        14368
+        1552,
+        17488
       ],
-      "id": "c738ad68-05ef-4d24-b1ca-1b1d5ae120a2",
+      "id": "b5e29e9f-9fc1-4c5c-97c3-1c1176474f2c",
       "name": "Email: Send Payout Success",
       "webhookId": "a5a6a75e-4893-4587-9e25-b8e4d5dba45c",
       "credentials": {
@@ -801,10 +739,10 @@
       "type": "n8n-nodes-globals.globalConstants",
       "typeVersion": 1,
       "position": [
-        160,
-        11856
+        496,
+        14800
       ],
-      "id": "e9206f62-f874-4159-a03a-2727c733fcc3",
+      "id": "97fd8e57-8418-4fb4-96d1-e910804993df",
       "name": "Globals: Get Payin Constants",
       "credentials": {
         "globalConstantsApi": {
@@ -821,10 +759,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -64,
-        11856
+        272,
+        14800
       ],
-      "id": "6528441d-2b3e-4b34-aae7-c9af59efde08",
+      "id": "31f3e45e-65d9-4217-89c4-5f793409537d",
       "name": "Webhook: Create Invoice",
       "webhookId": "280024c9-a15d-4144-9b4d-8ec63233ffce"
     },
@@ -833,10 +771,10 @@
       "type": "n8n-nodes-globals.globalConstants",
       "typeVersion": 1,
       "position": [
-        672,
-        13936
+        992,
+        16992
       ],
-      "id": "806c9574-1a24-4006-a3e9-90ba0c8323d0",
+      "id": "d9e0d0d1-083a-4958-8d3f-9aa57a44864c",
       "name": "Globals: Get Payout Constants",
       "credentials": {
         "globalConstantsApi": {
@@ -860,35 +798,6 @@
       ]
     },
     "HTTP: Create Xenith Payin": {
-      "main": [
-        [
-          {
-            "node": "Check: Has QRIS Payment Option?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check: Has QRIS Payment Option?": {
-      "main": [
-        [
-          {
-            "node": "HTTP: Generate QRIS Image",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Email: Send Invoice Payment Options",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP: Generate QRIS Image": {
       "main": [
         [
           {
@@ -1153,12 +1062,12 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "6c605427-d489-41dc-ac4e-a0af0e02d994",
+  "versionId": "c1e1b779-0d45-482d-b839-79e11fe9294b",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "fd68e697f63f15d04e3ee045f2e66a3d1a3fe462f5708a19c54e73572f40074e"

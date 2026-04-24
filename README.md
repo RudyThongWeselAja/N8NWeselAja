@@ -97,9 +97,7 @@ Crypto: Generate Payin Idempotency Key ─── Generate UUID idempotency key
 HTTP: Create Xenith Payin ─── POST ke /v1/payins
     │
     ▼
-Check: Has QRIS Payment Option?
-    ├── Ya ──▶ HTTP: Generate QRIS Image ──▶ Email: Send Invoice Payment Options
-    └── Tidak ──────────────────────────────▶ Email: Send Invoice Payment Options
+Email: Send Invoice Payment Options ─── Kirim email invoice ke customer
 ```
 
 **Query Parameters (GET):**
@@ -128,7 +126,7 @@ GET https://<n8n-url>/webhook/create-invoice?customerName=John&email=example@cus
 
 > **Catatan tentang `customerReference`:** Pada template ini, query parameter `email` digunakan sebagai nilai `customerReference` di XenithPay API. Ini **hanya contoh implementasi** agar workflow bisa langsung mengirim email notifikasi ke customer. Pada praktiknya, `customerReference` adalah field bebas (free-text) — Anda bisa mengisi ID pelanggan, nomor order, atau identifier apapun sesuai kebutuhan bisnis Anda.
 
-**Output:** Email invoice dikirim ke customer berisi detail pembayaran. Jika metode QRIS, email menyertakan gambar QR Code sebagai attachment.
+**Output:** Email invoice dikirim ke customer berisi detail pembayaran.
 
 ---
 
@@ -317,31 +315,29 @@ Check: Xenith Payout Signature Valid?
 | 5 | `Crypto: Create Xenith Payin Signature` | Crypto | Create Invoice | Generate HMAC-SHA256 signature untuk autentikasi request |
 | 6 | `Crypto: Generate Payin Idempotency Key` | Crypto | Create Invoice | Generate UUID sebagai idempotency key |
 | 7 | `HTTP: Create Xenith Payin` | HTTP Request | Create Invoice | Kirim request pembuatan payin ke XenithPay API |
-| 8 | `Check: Has QRIS Payment Option?` | IF | Create Invoice | Cek apakah metode pembayaran adalah QR_CODE |
-| 9 | `HTTP: Generate QRIS Image` | HTTP Request | Create Invoice | Generate gambar QR Code dari payment code |
-| 10 | `Email: Send Invoice Payment Options` | Email Send | Create Invoice | Kirim email invoice ke customer |
-| 11 | `Webhook: Simulate Payin` | Webhook (GET) | Simulate Payin | Menerima request GET dengan payin_id dan transaction_status untuk simulasi |
-| 12 | `Globals: Get Simulate Constants` | Global Constants | Simulate Payin | Mengambil endpoint sandbox XenithPay |
-| 13 | `Code: Build Simulate Payin Payload` | Code | Simulate Payin | Menyusun body simulasi transaksi dengan status yang dipilih |
-| 14 | `Crypto: Create Simulate Payin Signature` | Crypto | Simulate Payin | Generate signature untuk request simulasi |
-| 15 | `HTTP: Simulate Xenith Payin Transaction` | HTTP Request | Simulate Payin | Kirim request simulasi ke XenithPay sandbox |
-| 16 | `Webhook: Xenith Payin Callback` | Webhook | Callback Payin | Menerima callback POST dari XenithPay (payin) |
-| 17 | `Code: Build Signature Validation Payload` | Code | Callback Payin | Extract dan susun payload untuk validasi signature |
-| 18 | `Crypto: Create Expected Xenith Signature` | Crypto | Callback Payin | Generate expected signature untuk perbandingan |
-| 19 | `Check: Xenith Signature Valid?` | IF | Callback Payin | Validasi apakah signature cocok |
-| 20 | `Email: Send Payin Status Notification` | Email Send | Callback Payin | Kirim notifikasi status pembayaran (SUCCESS/FAILED/EXPIRED) |
-| 21 | `Webhook: Create Payout` | Webhook (GET) | Create Payout | Menerima request GET dengan query parameters untuk membuat payout baru |
-| 22 | `Globals: Get Payout Constants` | Global Constants | Create Payout | Mengambil konstanta global seperti xenithpayEndpoint dan callbackUrlPayout untuk payout |
-| 23 | `Postgres: Get Payout Channel` | PostgreSQL | Create Payout | Query tabel `payout_channels` berdasarkan nama metode |
-| 24 | `Code: Build Xenith Payout Payload` | Code | Create Payout | Menyusun request body dan signature payload untuk payout |
-| 25 | `Crypto: Create Xenith Payout Signature` | Crypto | Create Payout | Generate HMAC-SHA256 signature untuk request payout |
-| 26 | `Crypto: Generate Payout Idempotency Key` | Crypto | Create Payout | Generate UUID sebagai idempotency key |
-| 27 | `HTTP: Create Xenith Payout` | HTTP Request | Create Payout | Kirim request pembuatan payout ke XenithPay API |
-| 28 | `Webhook: Xenith Payout Callback` | Webhook | Callback Payout | Menerima callback POST dari XenithPay (payout) |
-| 29 | `Code: Build Payout Signature Validation Payload` | Code | Callback Payout | Extract dan susun payload untuk validasi signature payout |
-| 30 | `Crypto: Create Expected Xenith Payout Signature` | Crypto | Callback Payout | Generate expected signature payout |
-| 31 | `Check: Xenith Payout Signature Valid?` | IF | Callback Payout | Validasi signature + status SUCCESS |
-| 32 | `Email: Send Payout Success` | Email Send | Callback Payout | Kirim notifikasi payout berhasil |
+| 8 | `Email: Send Invoice Payment Options` | Email Send | Create Invoice | Kirim email invoice ke customer |
+| 9 | `Webhook: Simulate Payin` | Webhook (GET) | Simulate Payin | Menerima request GET dengan payin_id dan transaction_status untuk simulasi |
+| 10 | `Globals: Get Simulate Constants` | Global Constants | Simulate Payin | Mengambil endpoint sandbox XenithPay |
+| 11 | `Code: Build Simulate Payin Payload` | Code | Simulate Payin | Menyusun body simulasi transaksi dengan status yang dipilih |
+| 12 | `Crypto: Create Simulate Payin Signature` | Crypto | Simulate Payin | Generate signature untuk request simulasi |
+| 13 | `HTTP: Simulate Xenith Payin Transaction` | HTTP Request | Simulate Payin | Kirim request POST ke endpoint simulator XenithPay |
+| 14 | `Webhook: Xenith Payin Callback` | Webhook | Callback Payin | Menerima callback POST dari XenithPay (payin) |
+| 15 | `Code: Build Signature Validation Payload` | Code | Callback Payin | Extract dan susun payload untuk validasi signature |
+| 16 | `Crypto: Create Expected Xenith Signature` | Crypto | Callback Payin | Generate expected signature untuk perbandingan |
+| 17 | `Check: Xenith Signature Valid?` | IF | Callback Payin | Validasi apakah signature cocok |
+| 18 | `Email: Send Payin Status Notification` | Email Send | Callback Payin | Kirim notifikasi status pembayaran (SUCCESS/FAILED/EXPIRED) |
+| 19 | `Webhook: Create Payout` | Webhook (GET) | Create Payout | Menerima request GET dengan query parameters untuk membuat payout baru |
+| 20 | `Globals: Get Payout Constants` | Global Constants | Create Payout | Mengambil konstanta global seperti xenithpayEndpoint dan callbackUrlPayout untuk payout |
+| 21 | `Postgres: Get Payout Channel` | PostgreSQL | Create Payout | Query tabel `payout_channels` berdasarkan nama metode |
+| 22 | `Code: Build Xenith Payout Payload` | Code | Create Payout | Menyusun request body dan signature payload untuk payout |
+| 23 | `Crypto: Create Xenith Payout Signature` | Crypto | Create Payout | Generate HMAC-SHA256 signature untuk request payout |
+| 24 | `Crypto: Generate Payout Idempotency Key` | Crypto | Create Payout | Generate UUID sebagai idempotency key |
+| 25 | `HTTP: Create Xenith Payout` | HTTP Request | Create Payout | Kirim request pembuatan payout ke XenithPay API |
+| 26 | `Webhook: Xenith Payout Callback` | Webhook | Callback Payout | Menerima callback POST dari XenithPay (payout) |
+| 27 | `Code: Build Payout Signature Validation Payload` | Code | Callback Payout | Extract dan susun payload untuk validasi signature payout |
+| 28 | `Crypto: Create Expected Xenith Payout Signature` | Crypto | Callback Payout | Generate expected signature payout |
+| 29 | `Check: Xenith Payout Signature Valid?` | IF | Callback Payout | Validasi signature + status SUCCESS |
+| 30 | `Email: Send Payout Success` | Email Send | Callback Payout | Kirim notifikasi payout berhasil |
 
 ---
 
@@ -574,6 +570,6 @@ Semua node mengikuti format penamaan yang konsisten:
 | `Code:`    | Code (JS)       | `Code: Build Xenith Payin Requests`     |
 | `Crypto:`  | Crypto          | `Crypto: Create Xenith Payin Signature` |
 | `HTTP:`    | HTTP Request    | `HTTP: Create Xenith Payin`             |
-| `Check:`   | IF Condition    | `Check: Has QRIS Payment Option?`       |
+| `Check:`   | IF Condition    | `Check: Xenith Signature Valid?`                        |
 | `Email:`   | Email Send      | `Email: Send Invoice Payment Options`   |
 | `Note:`    | Sticky Note     | `Note: Create Invoice Flow`             |
