@@ -30,23 +30,143 @@ Lalu mengisi seed channel dan starter row untuk konfigurasi workflow.
 | Public URL | Domain publik atau tunnel seperti ngrok agar callback XenithPay bisa masuk ke n8n. |
 | XenithPay | Akun sandbox atau production, lengkap dengan API key dan secret yang sesuai. |
 
+## Pembuatan Database PostgreSQL
+
+Workflow ini butuh satu database PostgreSQL yang bisa diakses dari n8n. Contoh di bawah memakai nama database `xenithpay` dan user `xenithpay_user`; silakan ganti sesuai standar deployment Anda.
+
+### 1. Buat database dan user
+
+Jalankan perintah ini dari user PostgreSQL yang punya akses membuat database, misalnya `postgres`:
+
+```bash
+psql -h <host> -U postgres
+```
+
+Lalu jalankan SQL berikut:
+
+```sql
+CREATE USER xenithpay_user WITH PASSWORD '<strong-password>';
+CREATE DATABASE xenithpay OWNER xenithpay_user;
+```
+
+Jika database sudah dibuat oleh provider hosting, cukup pastikan Anda punya nilai koneksi berikut:
+
+| Field | Contoh |
+| --- | --- |
+| Host | `db.example.com` |
+| Port | `5432` |
+| Database | `xenithpay` |
+| User | `xenithpay_user` |
+| Password | password database |
+| Schema | `public` |
+
+### 2. Jalankan setup SQL
+
+Dari folder repo ini, jalankan file `xenithpay_database_setup.sql` ke database yang sudah dibuat:
+
+```bash
+psql -h <host> -p 5432 -U xenithpay_user -d xenithpay -f xenithpay_database_setup.sql
+```
+
+File ini aman dijalankan ulang karena memakai `CREATE TABLE IF NOT EXISTS`, `CREATE UNIQUE INDEX IF NOT EXISTS`, dan `ON CONFLICT` untuk seed channel.
+
+### 3. Isi variable environment
+
+Setelah tabel dibuat, ganti placeholder di tabel `public.variables`:
+
+```sql
+UPDATE public.variables
+SET value = CASE key
+  WHEN 'xenithpayEndpoint' THEN 'https://openapi.sandbox.xenithpay.com'
+  WHEN 'n8nURL' THEN 'https://n8n.example.com'
+  WHEN 'homepageURL' THEN 'https://www.example.com'
+END
+WHERE key IN ('xenithpayEndpoint', 'n8nURL', 'homepageURL');
+```
+
+Untuk production, ubah `xenithpayEndpoint` menjadi:
+
+```text
+https://openapi.xenithpay.com
+```
+
+### 4. Cek hasil setup
+
+Gunakan query ini untuk memastikan tabel, variable, dan seed channel sudah masuk:
+
+```sql
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+  AND table_name IN (
+    'variables',
+    'invoices',
+    'payouts',
+    'payment_channels',
+    'payout_channels'
+  )
+ORDER BY table_name;
+
+SELECT 'payment_channels' AS table_name, COUNT(*) AS total_rows
+FROM public.payment_channels
+UNION ALL
+SELECT 'payout_channels' AS table_name, COUNT(*) AS total_rows
+FROM public.payout_channels;
+
+SELECT key, value
+FROM public.variables
+ORDER BY key;
+```
+
+Hasil yang diharapkan:
+
+| Data | Minimal hasil |
+| --- | --- |
+| Tabel | 5 tabel muncul: `variables`, `invoices`, `payouts`, `payment_channels`, `payout_channels`. |
+| `payment_channels` | 14 row seed channel payin. |
+| `payout_channels` | 31 row seed channel payout. |
+| `variables` | 3 key: `homepageURL`, `n8nURL`, `xenithpayEndpoint`. |
+
+### 5. Hubungkan ke credential n8n
+
+Buat credential PostgreSQL di n8n dengan nama `database`, lalu isi sesuai koneksi database:
+
+| Field n8n | Isi |
+| --- | --- |
+| Host | Host PostgreSQL Anda. |
+| Database | `xenithpay` atau nama database yang Anda pakai. |
+| User | `xenithpay_user` atau user database Anda. |
+| Password | Password user database. |
+| Port | Biasanya `5432`. |
+| SSL | Aktifkan kalau provider database mewajibkan SSL. |
+
+Kalau muncul error `permission denied for schema public`, pastikan database dimiliki oleh user yang dipakai n8n atau jalankan grant berikut dari user admin:
+
+```sql
+GRANT USAGE, CREATE ON SCHEMA public TO xenithpay_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO xenithpay_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO xenithpay_user;
+```
+
 ## Setup Cepat
 
-1. Import `Xenithpay Template.json` ke n8n.
-2. Buat credential yang dipakai workflow:
+1. Buat database PostgreSQL dengan panduan di bagian `Pembuatan Database PostgreSQL`.
+2. Jalankan setup SQL:
+
+```bash
+psql -h <host> -p 5432 -U <user> -d <database> -f xenithpay_database_setup.sql
+```
+
+3. Ganti placeholder di tabel `public.variables` sesuai domain dan environment Anda.
+4. Import `Xenithpay Template.json` ke n8n.
+5. Buat credential yang dipakai workflow:
    - `Xenith-Api-Key`
    - `Xenith-Secret-Key`
    - `xenith-web-signature-secret`
    - `database`
    - `SMTP`
-3. Jalankan setup SQL:
-
-```bash
-psql -h <host> -U <user> -d <database> -f xenithpay_database_setup.sql
-```
-
-4. Ganti placeholder di tabel `public.variables` sesuai domain dan environment Anda.
-5. Aktifkan workflow, lalu gunakan webhook yang dibutuhkan.
+6. Aktifkan workflow, lalu gunakan webhook yang dibutuhkan.
 
 ## Credentials n8n
 
