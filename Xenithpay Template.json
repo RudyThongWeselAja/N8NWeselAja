@@ -4,21 +4,21 @@
     {
       "parameters": {
         "action": "generate",
-        "dataPropertyName": "QRIdempotencyKey"
+        "dataPropertyName": "IdempotencyKey"
       },
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 1,
       "position": [
-        6144,
-        26592
+        8448,
+        36864
       ],
-      "id": "032ded4a-03a6-4a06-b2d2-2dbd7ba3611e",
+      "id": "dae59ff5-c9d1-47b8-9cf5-0dbb2845e234",
       "name": "Crypto: Generate Payin Idempotency Key"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $('Globals: Get Payin Constants').item.json.constants.xenithpayEndpoint }}/v1/payins",
+        "url": "={{ $('Code in JavaScript2').item.json.xenithpayEndpoint }}/v1/payins",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
@@ -38,7 +38,7 @@
             },
             {
               "name": "X-Idempotency-Key",
-              "value": "={{ $json.QRIdempotencyKey }}"
+              "value": "={{ $json.IdempotencyKey }}"
             }
           ]
         },
@@ -50,10 +50,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        6368,
-        26592
+        8672,
+        36864
       ],
-      "id": "3d6c8657-b819-4f68-ab3f-7cec3d1503d0",
+      "id": "933d0069-8738-46c8-8e91-1d1d3a98b7f4",
       "name": "HTTP: Create Xenith Payin",
       "credentials": {
         "httpHeaderAuth": {
@@ -65,15 +65,15 @@
     },
     {
       "parameters": {
-        "jsCode": "/**\n * Code: Build Xenith Payin Requests\n * \n * Menyusun request body untuk pembuatan payin ke XenithPay API.\n * \n * Input:\n *   - Webhook -> initiated_amount, phone_number, referenceCode, email, customerName, description\n *   - Postgres: Get Payment Channel -> method, channel\n * \n * Output:\n *   - signaturePayload: string payload yang akan di-sign dengan HMAC-SHA256\n *   - timestamp: ISO timestamp untuk header Xenith-Request-Timestamp\n *   - body: object request body untuk POST /v1/payins\n * \n * Catatan:\n *   - customerReference diisi dengan email sebagai contoh (bisa diganti identifier lain)\n *   - callbackUrl HARUS mengarah ke path yang sama dengan node 'Webhook: Xenith Payin Callback'\n *     yaitu /webhook/xenith-payin. Jika tidak cocok, callback dari XenithPay\n *     tidak akan diterima dan flow Callback Payin tidak akan berjalan.\n *   - Atur callbackUrlPayin, redirectUrl, dan xenithpayEndpoint via credential 'WeselAja Global Variables'\n * \n * Webhook URL di N8N (node Webhook: Xenith Payin Callback):\n *   - Test URL       : http://<n8n-host>/webhook-test/xenith-payin\n *   - Production URL : http://<n8n-host>/webhook/xenith-payin\n *   callbackUrl HARUS menggunakan format Production URL (/webhook/), bukan Test URL\n *   (/webhook-test/), karena XenithPay mengirim callback saat workflow aktif (production mode).\n *   Test URL hanya aktif saat klik 'Listen for test event' di N8N UI.\n */\n\n// Susun request body dari data form dan payment channel DB\nconst body = {\n  initiatedAmount: $('Webhook: Create Invoice').first().json.query.initiated_amount,\n  currency: 'IDR',\n  paymentMethod: $input.first().json.method,\n  paymentChannel: $input.first().json.channel,\n  customerPhoneNumber: $('Webhook: Create Invoice').first().json.query.phone_number,\n  referenceCode: $('Webhook: Create Invoice').first().json.query.referenceCode,\n  customerReference: $('Webhook: Create Invoice').first().json.query.email,\n  customerName: $('Webhook: Create Invoice').first().json.query.customerName,\n  description: $('Webhook: Create Invoice').first().json.query.description,\n  // callbackUrl harus menggunakan Production URL (/webhook/)\n  callbackUrl: $('Globals: Get Payin Constants').first().json.constants.callbackUrlPayin,\n  redirectUrl: $('Globals: Get Payin Constants').first().json.constants.redirectUrl,\n};\n\n// Susun signature payload sesuai format XenithPay: METHOD\\nURI\\nTIMESTAMP\\nBODY\nconst method = \"POST\";\nconst uri = \"/v1/payins\";\nconst timestamp = new Date().toISOString();\nconst signaturePayload = `${method}\\n${uri}\\n${timestamp}\\n${JSON.stringify(body)}`;\n\nreturn {\n  json:{signaturePayload, timestamp, body}\n}"
+        "jsCode": "/**\n * Code: Build Xenith Payin Requests\n * \n * Menyusun request body untuk pembuatan payin ke XenithPay API.\n * \n * Input:\n *   - Webhook -> initiated_amount, phone_number, referenceCode, email, customerName, description\n *   - Postgres: Get Payment Channel -> method, channel\n * \n * Output:\n *   - signaturePayload: string payload yang akan di-sign dengan HMAC-SHA256\n *   - timestamp: ISO timestamp untuk header Xenith-Request-Timestamp\n *   - body: object request body untuk POST /v1/payins\n * \n * Catatan:\n *   - customerReference diisi dengan email sebagai contoh (bisa diganti identifier lain)\n *   - callbackUrl HARUS mengarah ke path yang sama dengan node 'Webhook: Xenith Payin Callback'\n *     yaitu /webhook/xenith-payin. Jika tidak cocok, callback dari XenithPay\n *     tidak akan diterima dan flow Callback Payin tidak akan berjalan.\n *   - Atur callbackUrlPayin, redirectUrl, dan xenithpayEndpoint via credential 'WeselAja Global Variables'\n * \n * Webhook URL di N8N (node Webhook: Xenith Payin Callback):\n *   - Test URL       : http://<n8n-host>/webhook-test/xenith-payin\n *   - Production URL : http://<n8n-host>/webhook/xenith-payin\n *   callbackUrl HARUS menggunakan format Production URL (/webhook/), bukan Test URL\n *   (/webhook-test/), karena XenithPay mengirim callback saat workflow aktif (production mode).\n *   Test URL hanya aktif saat klik 'Listen for test event' di N8N UI.\n */\n\n// Susun request body dari data form dan payment channel DB\nconst body = {\n  initiatedAmount: $('Webhook: Create Invoice').first().json.query.initiated_amount,\n  currency: 'IDR',\n  paymentMethod: $input.first().json.method,\n  paymentChannel: $input.first().json.channel,\n  customerPhoneNumber: $('Webhook: Create Invoice').first().json.query.phone_number,\n  referenceCode: $('Webhook: Create Invoice').first().json.query.referenceCode,\n  customerReference: $('Webhook: Create Invoice').first().json.query.email,\n  customerName: $('Webhook: Create Invoice').first().json.query.customerName,\n  description: $('Webhook: Create Invoice').first().json.query.description,\n  // callbackUrl harus menggunakan Production URL (/webhook/)\n  callbackUrl: $('Code in JavaScript2').first().json.n8nURL+\"/webhook/xenith-payin\",\n  redirectUrl: $('Code in JavaScript2').first().json.n8nURL+\"/webhook/payment?referenceCode=\"+$('Webhook: Create Invoice').first().json.query.referenceCode,\n};\n\n// Susun signature payload sesuai format XenithPay: METHOD\\nURI\\nTIMESTAMP\\nBODY\nconst method = \"POST\";\nconst uri = \"/v1/payins\";\nconst timestamp = new Date().toISOString();\nconst signaturePayload = `${method}\\n${uri}\\n${timestamp}\\n${JSON.stringify(body)}`;\n\nreturn {\n  json:{signaturePayload, timestamp, body}\n}"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5696,
-        26592
+        8000,
+        36864
       ],
-      "id": "7a8a68ab-e985-4b29-85cc-5592b646320c",
+      "id": "0b78b55a-5549-441a-a0c8-5298201ff5ff",
       "name": "Code: Build Xenith Payin Requests"
     },
     {
@@ -86,10 +86,10 @@
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 2,
       "position": [
-        5920,
-        26592
+        8224,
+        36864
       ],
-      "id": "17456e15-57b5-43cf-ae3a-dccd216114db",
+      "id": "1d9999cc-975f-4e42-a880-dd656c9abbe2",
       "name": "Crypto: Create Xenith Payin Signature",
       "credentials": {
         "crypto": {
@@ -100,17 +100,17 @@
     },
     {
       "parameters": {
-        "content": "# Create Invoice / Payin\n\nFlow ini membuat invoice pembayaran baru, mengambil mapping channel dari PostgreSQL, membuat signature HMAC, mengirim request ke XenithPay, lalu mengirim email invoice ke customer.\n\n## Setup Wajib\n- Install community node **n8n-nodes-globals**.\n- Buat credential **WeselAja Global Variables** dengan `xenithpayEndpoint`, `callbackUrlPayin`, `callbackUrlPayout`, dan `redirectUrl`.\n- Buat credential PostgreSQL bernama **database**.\n- Jalankan `xenithpay_channels_setup.sql` di PostgreSQL. File ini sudah membuat tabel `payment_channels` dan `payout_channels`, sekaligus mengisi seed channel.\n\n## Alur\nWebhook: Create Invoice > Globals: Get Payin Constants > Postgres: Get Payment Channel > Code: Build Xenith Payin Requests > Crypto: Create Xenith Payin Signature > Crypto: Generate Payin Idempotency Key > HTTP: Create Xenith Payin > Email: Send Invoice Payment Options\n\n## Input GET\n- `customerName`: Nama customer.\n- `email`: Email invoice; pada template ini juga dipakai sebagai `customerReference`.\n- `initiated_amount`: Nominal pembayaran IDR.\n- `paymentChannel`: Kode channel dari `payment_channels.channel`, contoh `QRIS`, `BRI.VA`, `DANA`.\n- `phone_number`: Nomor telepon customer.\n- `referenceCode`: Kode referensi transaksi.\n- `description`: Deskripsi transaksi.\n\n## Contoh\nTest: `GET /webhook-test/create-invoice?customerName=John&email=example@customer.com&initiated_amount=50000&paymentChannel=BRI.VA&phone_number=08123456789&referenceCode=REF-001&description=Pembayaran+Produk`\n\nProduction: `GET /webhook/create-invoice?customerName=John&email=example@customer.com&initiated_amount=50000&paymentChannel=BRI.VA&phone_number=08123456789&referenceCode=REF-001&description=Pembayaran+Produk`\n\n## Callback\n`callbackUrlPayin` wajib memakai Production URL `/webhook/xenith-payin`, bukan `/webhook-test/xenith-payin`.",
-        "height": 1008,
-        "width": 2444
+        "content": "# Create Invoice / Payin\n\nFlow ini membuat invoice pembayaran baru, mengambil mapping channel dari PostgreSQL, membuat signature HMAC, mengirim request ke XenithPay, lalu mengirim email invoice ke customer.\n\n## Setup Wajib\n- Install community node **n8n-nodes-globals**.\n- Buat credential **WeselAja Global Variables**.\n- Isi Global Variables:\n  `xenithpayEndpoint=<xenithpay-api>`\n  Sandbox pakai: `https://openapi.sandbox.xenithpay.com`\n  Production pakai: `https://openapi.xenithpay.com`\n  `callbackUrlPayin=https://<your-public-url>/webhook/xenith-payin`\n  `callbackUrlPayout=https://<your-public-url>/webhook/xenith-payout`\n  `redirectUrl=https://www.weselaja.com/`\n- Buat credential PostgreSQL bernama **database**.\n- Jalankan `xenithpay_channels_setup.sql` di PostgreSQL.\n\n## Test vs Production\n- `xenithpayEndpoint` menentukan XenithPay sandbox atau production.\n- `/webhook-test/create-invoice` vs `/webhook/create-invoice` hanya menentukan mode webhook n8n.\n- `callbackUrlPayin` harus selalu ke `/webhook/xenith-payin`, bukan `/webhook-test/...`, termasuk saat XenithPay masih sandbox.\n\n## Input GET\n- `customerName`: Nama customer.\n- `email`: Email invoice; pada template ini juga dipakai sebagai `customerReference`.\n- `initiated_amount`: Nominal pembayaran IDR.\n- `paymentChannel`: Kode channel dari `payment_channels.channel`, contoh `QRIS`, `BRI.VA`, `DANA`.\n- `phone_number`: Nomor telepon customer.\n- `referenceCode`: Kode referensi transaksi.\n- `description`: Deskripsi transaksi.\n\n## Contoh\nn8n Test URL: `GET /webhook-test/create-invoice?customerName=John&email=example@customer.com&initiated_amount=50000&paymentChannel=BRI.VA&phone_number=08123456789&referenceCode=REF-001&description=Pembayaran+Produk`\n\nn8n Production URL: `GET /webhook/create-invoice?customerName=John&email=example@customer.com&initiated_amount=50000&paymentChannel=BRI.VA&phone_number=08123456789&referenceCode=REF-001&description=Pembayaran+Produk`",
+        "height": 992,
+        "width": 2788
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        4816,
-        25808
+        6304,
+        36096
       ],
       "typeVersion": 1,
-      "id": "4de07397-8a46-471a-a805-43fb78a2adee",
+      "id": "90963477-f361-4178-8c7d-11286a105b7d",
       "name": "Note: Create Invoice Flow"
     },
     {
@@ -141,10 +141,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        5472,
-        26592
+        7776,
+        36864
       ],
-      "id": "f7b1d2cc-6bf6-4c19-b147-9077e77e5a59",
+      "id": "eb43b506-b304-45b8-819e-d3b05f2da693",
       "name": "Postgres: Get Payment Channel",
       "credentials": {
         "postgres": {
@@ -167,10 +167,10 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        6672,
-        26576
+        8976,
+        36848
       ],
-      "id": "1e1f77fd-1577-44d6-914f-d8863587f3ed",
+      "id": "45a2683d-5a65-4a4d-8459-1e9d080de1a7",
       "name": "Email: Send Invoice Payment Options",
       "webhookId": "520bc1c5-2a76-4e78-b23f-98113fc8dcc6",
       "credentials": {
@@ -182,17 +182,17 @@
     },
     {
       "parameters": {
-        "content": "# Simulate Payin\n\nFlow ini hanya untuk sandbox. Gunakan setelah invoice dibuat untuk mensimulasikan status pembayaran.\n\n## Alur\nWebhook: Simulate Payin > Code: Build Simulate Payin Payload > Crypto: Create Simulate Payin Signature > HTTP: Simulate Xenith Payin Transaction\n\n## Input GET\n- `payin_id`: Transaction ID dari response create invoice atau email invoice.\n- `transaction_status`: `SUCCESS`, `FAILED`, atau `EXPIRED`.\n\n## Contoh\nTest: `GET /webhook-test/simulate-payin?payin_id=txn_abc123&transaction_status=SUCCESS`\n\nProduction/test aktif workflow: `GET /webhook/simulate-payin?payin_id=txn_abc123&transaction_status=SUCCESS`\n\n## Catatan\nEndpoint simulator hardcoded ke `https://openapi.sandbox.xenithpay.com/v1/simulator/transaction`. Nonaktifkan flow ini saat workflow dipakai untuk production.",
+        "content": "# Simulate Payin\n\nFlow ini hanya untuk sandbox. Gunakan setelah invoice dibuat untuk mensimulasikan status pembayaran.\n\n## Test vs Production\n- Flow ini hanya ada di XenithPay sandbox.\n- `/webhook-test/simulate-payin` vs `/webhook/simulate-payin` hanya menentukan mode webhook n8n.\n- Mengganti URL n8n tidak mengubah simulator menjadi production.\n\n## Input GET\n- `payin_id`: Transaction ID dari response create invoice atau email invoice.\n- `transaction_status`: `SUCCESS`, `FAILED`, atau `EXPIRED`.\n\n## Contoh\nn8n Test URL: `GET /webhook-test/simulate-payin?payin_id=txn_abc123&transaction_status=SUCCESS`\n\nn8n Production URL: `GET /webhook/simulate-payin?payin_id=txn_abc123&transaction_status=SUCCESS`\n\n## Catatan\nEndpoint simulator hardcoded ke `https://openapi.sandbox.xenithpay.com/v1/simulator/transaction`. Nonaktifkan flow ini saat workflow dipakai untuk production.",
         "height": 608,
         "width": 2236
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        4816,
-        26880
+        6304,
+        37168
       ],
       "typeVersion": 1,
-      "id": "39ff7cf0-46c2-435f-8030-9c6e0a3696ae",
+      "id": "a65b247d-03da-4bbb-b965-f5e36ea12a89",
       "name": "Note: Simulate Payin Flow"
     },
     {
@@ -202,10 +202,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5904,
-        27232
+        7616,
+        37408
       ],
-      "id": "7449a6bb-d752-4a73-a860-cae804f1b8f3",
+      "id": "7620ac8d-1902-43ce-a841-7e4cdf2a23f0",
       "name": "Code: Build Simulate Payin Payload"
     },
     {
@@ -239,10 +239,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        6288,
-        27232
+        8000,
+        37408
       ],
-      "id": "256a56bd-76e2-4007-893e-373190d58dc7",
+      "id": "6b377051-1c1e-475f-9282-9d31c429b11d",
       "name": "HTTP: Simulate Xenith Payin Transaction",
       "credentials": {
         "httpHeaderAuth": {
@@ -261,10 +261,10 @@
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 2,
       "position": [
-        6096,
-        27232
+        7808,
+        37408
       ],
-      "id": "64fcd7d8-c5da-4525-8ecb-a3addd3dbb8a",
+      "id": "ddf12889-84aa-448e-9b0f-16627e7273ac",
       "name": "Crypto: Create Simulate Payin Signature",
       "credentials": {
         "crypto": {
@@ -276,15 +276,17 @@
     {
       "parameters": {
         "path": "simulate-payin",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
         "options": {}
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        5680,
-        27232
+        7392,
+        37408
       ],
-      "id": "6e22b1ea-ce9d-4fbc-b3bc-a4f0553d99ef",
+      "id": "9991a17f-7d0c-4016-b1bc-a1e7185c4311",
       "name": "Webhook: Simulate Payin",
       "webhookId": "ce9d05e5-fd1d-4d90-b40f-12de93f1cc54"
     },
@@ -292,15 +294,17 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "xenith-payin",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
         "options": {}
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        5312,
-        27936
+        6800,
+        38224
       ],
-      "id": "02e41097-9aeb-4d58-998b-8bcfdaeb5c82",
+      "id": "c3be8feb-8c2e-4deb-bd59-dc8a378bfff7",
       "name": "Webhook: Xenith Payin Callback",
       "webhookId": "9670673a-82dc-48ca-8afc-001d2e970eca"
     },
@@ -311,10 +315,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5536,
-        27936
+        7024,
+        38224
       ],
-      "id": "d067fefb-21c5-4f3f-814f-46ee81b3cd08",
+      "id": "7bd32e57-edf1-423f-93cc-d526492c8fa7",
       "name": "Code: Build Signature Validation Payload"
     },
     {
@@ -345,10 +349,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        5984,
-        27936
+        7472,
+        38224
       ],
-      "id": "2d2db4de-36c8-423b-9eee-20bda52c6444",
+      "id": "280e5d46-df7f-4b8c-a23a-6516d3aa2561",
       "name": "Check: Xenith Signature Valid?"
     },
     {
@@ -361,10 +365,10 @@
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 2,
       "position": [
-        5760,
-        27936
+        7248,
+        38224
       ],
-      "id": "3fa2a640-2d07-4542-94ea-b052983f3394",
+      "id": "a0c5ba3a-7bbe-4709-ae0e-472304013ddf",
       "name": "Crypto: Create Expected Xenith Signature",
       "credentials": {
         "crypto": {
@@ -375,30 +379,30 @@
     },
     {
       "parameters": {
-        "content": "# Callback Payin\n\nFlow ini menerima callback status payin dari XenithPay, memvalidasi signature webhook, lalu mengirim email notifikasi status pembayaran.\n\n## Alur\nWebhook: Xenith Payin Callback > Code: Build Signature Validation Payload > Crypto: Create Expected Xenith Signature > Check: Xenith Signature Valid? > Email: Send Payin Status Notification\n\n## Webhook URL\n- Test: `http://<n8n-host>/webhook-test/xenith-payin`\n- Production: `http://<n8n-host>/webhook/xenith-payin`\n\n`callbackUrlPayin` pada Global Variables harus sama dengan Production URL.\n\n## Status Email\n- `SUCCESS`: pembayaran berhasil.\n- `FAILED`: pembayaran gagal.\n- `EXPIRED`: pembayaran kedaluwarsa.",
+        "content": "# Callback Payin\n\nFlow ini menerima callback status payin dari XenithPay, memvalidasi signature webhook, lalu mengirim email notifikasi status pembayaran.\n\n## Test vs Production\n- `webhook-test` di n8n hanya untuk tes manual saat editor sedang listen.\n- Callback XenithPay harus masuk ke `/webhook/xenith-payin`.\n- XenithPay sandbox tetap mengirim callback ke n8n production webhook, bukan ke `webhook-test`.\n\n## Webhook URL\n- Test: `http://<n8n-host>/webhook-test/xenith-payin`\n- Production: `http://<n8n-host>/webhook/xenith-payin`\n\n## Status Email\n- `SUCCESS`: pembayaran berhasil.\n- `FAILED`: pembayaran gagal.\n- `EXPIRED`: pembayaran kedaluwarsa.",
         "height": 576,
         "width": 2236
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        4832,
-        27568
+        6320,
+        37856
       ],
       "typeVersion": 1,
-      "id": "972e3d3e-9c99-4c90-a7e3-1fbcb71d973d",
+      "id": "dfee0449-3092-4682-ac7a-f9b6614a5e16",
       "name": "Note: Callback Payin Flow"
     },
     {
       "parameters": {
-        "jsCode": "/**\n * Code: Build Xenith Payout Payload\n * \n * Menyusun request body untuk pembuatan payout (disbursement) ke XenithPay API.\n * \n * Input:\n *   - Webhook (GET) -> query.amount, query.destinationPayoutAccount, query.destinationPayoutAccountName, query.email\n *   - Postgres: Get Payout Channel -> method, channel\n * \n * Output:\n *   - signaturePayload: string payload yang akan di-sign dengan HMAC-SHA256\n *   - timestamp: ISO timestamp untuk header Xenith-Request-Timestamp\n *   - body: object request body untuk POST /v1/payouts\n * \n * Catatan:\n *   - customerReference diisi dengan email sebagai contoh (bisa diganti identifier lain)\n *   - callbackUrl HARUS mengarah ke path yang sama dengan node 'Webhook: Xenith Payout Callback'\n *     yaitu /webhook/xenith-payout. Jika tidak cocok, callback dari XenithPay\n *     tidak akan diterima dan flow Callback Payout tidak akan berjalan.\n *   - Atur callbackUrlPayout, redirectUrl, dan xenithpayEndpoint via credential 'WeselAja Global Variables'\n * \n * Webhook URL di N8N (node Webhook: Xenith Payout Callback):\n *   - Test URL       : http://<n8n-host>/webhook-test/xenith-payout\n *   - Production URL : http://<n8n-host>/webhook/xenith-payout\n *   callbackUrl HARUS menggunakan format Production URL (/webhook/), bukan Test URL\n *   (/webhook-test/), karena XenithPay mengirim callback saat workflow aktif (production mode).\n *   Test URL hanya aktif saat klik 'Listen for test event' di N8N UI.\n */\n\nconst method = \"POST\";\nconst uri = \"/v1/payouts\";\nconst timestamp = new Date().toISOString();\n\n// Susun request body dari data webhook query dan payout channel DB\nconst body = {\n  initiatedAmount: $('Webhook: Create Payout').first().json.query.amount,\n  currency: \"IDR\",\n  destinationPayoutMethod: $input.first().json.method,\n  destinationPayoutChannel: $input.first().json.channel,\n  destinationPayoutAccount: $('Webhook: Create Payout').first().json.query.destinationPayoutAccount,\n  destinationPayoutAccountName: $('Webhook: Create Payout').first().json.query.destinationPayoutAccountName,\n  referenceCode: \"REF-TEST-001\",\n  customerReference: $('Webhook: Create Payout').first().json.query.email,\n  description: \"Payout merchant TEST MERCHANT 2026-01-01\",\n  // callbackUrl harus menggunakan Production URL (/webhook/), bukan Test URL (/webhook-test/)\n  // dan harus cocok dengan path di node 'Webhook: Xenith Payout Callback'\n  callbackUrl: $('Globals: Get Payout Constants').first().json.constants.callbackUrlPayout\n}\n\n// Susun signature payload sesuai format XenithPay: METHOD\\nURI\\nTIMESTAMP\\nBODY\nconst signaturePayload = `${method}\\n${uri}\\n${timestamp}\\n${JSON.stringify(body)}`;\n\nreturn {json:{signaturePayload,timestamp,body}}\n"
+        "jsCode": "/**\n * Code: Build Xenith Payout Payload\n * \n * Menyusun request body untuk pembuatan payout (disbursement) ke XenithPay API.\n * \n * Input:\n *   - Webhook (GET) -> query.amount, query.destinationPayoutAccount, query.destinationPayoutAccountName, query.email\n *   - Postgres: Get Payout Channel -> method, channel\n * \n * Output:\n *   - signaturePayload: string payload yang akan di-sign dengan HMAC-SHA256\n *   - timestamp: ISO timestamp untuk header Xenith-Request-Timestamp\n *   - body: object request body untuk POST /v1/payouts\n * \n * Catatan:\n *   - customerReference diisi dengan email sebagai contoh (bisa diganti identifier lain)\n *   - callbackUrl HARUS mengarah ke path yang sama dengan node 'Webhook: Xenith Payout Callback'\n *     yaitu /webhook/xenith-payout. Jika tidak cocok, callback dari XenithPay\n *     tidak akan diterima dan flow Callback Payout tidak akan berjalan.\n *   - Atur callbackUrlPayout, redirectUrl, dan xenithpayEndpoint via credential 'WeselAja Global Variables'\n * \n * Webhook URL di N8N (node Webhook: Xenith Payout Callback):\n *   - Test URL       : http://<n8n-host>/webhook-test/xenith-payout\n *   - Production URL : http://<n8n-host>/webhook/xenith-payout\n *   callbackUrl HARUS menggunakan format Production URL (/webhook/), bukan Test URL\n *   (/webhook-test/), karena XenithPay mengirim callback saat workflow aktif (production mode).\n *   Test URL hanya aktif saat klik 'Listen for test event' di N8N UI.\n */\n\nconst method = \"POST\";\nconst uri = \"/v1/payouts\";\nconst timestamp = new Date().toISOString();\n\n// Susun request body dari data webhook query dan payout channel DB\nconst body = {\n  initiatedAmount: $('Webhook: Create Payout').first().json.query.amount,\n  currency: \"IDR\",\n  destinationPayoutMethod: $input.first().json.method,\n  destinationPayoutChannel: $input.first().json.channel,\n  destinationPayoutAccount: $('Webhook: Create Payout').first().json.query.destinationPayoutAccount,\n  destinationPayoutAccountName: $('Webhook: Create Payout').first().json.query.destinationPayoutAccountName,\n  referenceCode: $('Webhook: Create Payout').first().json.query.referenceCode,\n  customerReference: $('Webhook: Create Payout').first().json.query.email,\n  description: \"Payout merchant TEST MERCHANT 2026-01-01\",\n  // callbackUrl harus menggunakan Production URL (/webhook/), bukan Test URL (/webhook-test/)\n  // dan harus cocok dengan path di node 'Webhook: Xenith Payout Callback'\n  callbackUrl: $('Globals: Get Payout Constants').first().json.constants.n8nURL+\"/webhook/xenith-payout\"\n}\n\n// Susun signature payload sesuai format XenithPay: METHOD\\nURI\\nTIMESTAMP\\nBODY\nconst signaturePayload = `${method}\\n${uri}\\n${timestamp}\\n${JSON.stringify(body)}`;\n\nreturn {json:{signaturePayload,timestamp,body}}\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6160,
-        28784
+        8016,
+        39104
       ],
-      "id": "7d363a9b-7f23-4836-9099-5448724af2e1",
+      "id": "bd075af5-f368-4b27-8db2-6d1bd75727a4",
       "name": "Code: Build Xenith Payout Payload"
     },
     {
@@ -409,10 +413,10 @@
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 1,
       "position": [
-        6608,
-        28784
+        8464,
+        39104
       ],
-      "id": "90771200-552a-451a-ac2a-a99cdf326d6a",
+      "id": "c284a61d-a067-4793-b5f7-8393e5449ab4",
       "name": "Crypto: Generate Payout Idempotency Key"
     },
     {
@@ -450,10 +454,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        6832,
-        28784
+        8688,
+        39104
       ],
-      "id": "a6b4bf81-a66b-41c2-97c0-5f67e0167b1e",
+      "id": "52ba61f5-e2fb-40a5-ae94-8f0a8d73d498",
       "name": "HTTP: Create Xenith Payout",
       "credentials": {
         "httpHeaderAuth": {
@@ -473,10 +477,10 @@
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 2,
       "position": [
-        6384,
-        28784
+        8240,
+        39104
       ],
-      "id": "548db106-b956-4a0e-ba8c-195be2f8e89d",
+      "id": "3405b653-0457-4556-97a9-e55515ec0908",
       "name": "Crypto: Create Xenith Payout Signature",
       "credentials": {
         "crypto": {
@@ -488,15 +492,17 @@
     {
       "parameters": {
         "path": "create-payout",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
         "options": {}
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        5488,
-        28784
+        6896,
+        39120
       ],
-      "id": "f6092ebe-e1d5-4a20-a570-8998118d82df",
+      "id": "5e30335f-f02a-4f55-a6ff-51c5e009f0f4",
       "name": "Webhook: Create Payout",
       "webhookId": "019974d9-668d-4d6a-9550-a08d08e9fd0e"
     },
@@ -528,10 +534,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        5936,
-        28784
+        7792,
+        39104
       ],
-      "id": "d2b4f39d-0479-4a1f-a08d-196b42396bd1",
+      "id": "093d59b5-3268-43af-9fa1-0a3259b1a652",
       "name": "Postgres: Get Payout Channel",
       "credentials": {
         "postgres": {
@@ -544,15 +550,17 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "xenith-payout",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
         "options": {}
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        5312,
-        29296
+        6800,
+        39584
       ],
-      "id": "75b30fa8-3f7e-4fd0-aee2-b04ccba26c14",
+      "id": "926426fb-d043-4e23-a810-9c90561f9136",
       "name": "Webhook: Xenith Payout Callback",
       "webhookId": "02f343a7-7616-4243-872c-1d75671fe5e5"
     },
@@ -563,10 +571,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5536,
-        29296
+        7024,
+        39584
       ],
-      "id": "7e933e70-a18e-4d65-ab40-41df152aaad3",
+      "id": "9bf79b0d-feb9-44b5-bb52-a9f08b79b7a9",
       "name": "Code: Build Payout Signature Validation Payload"
     },
     {
@@ -607,10 +615,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        5984,
-        29296
+        7472,
+        39584
       ],
-      "id": "10656df1-58d6-4339-95a2-bfa2a2c4bd3f",
+      "id": "fa51a07c-a7f7-4220-8608-8354f62d91ba",
       "name": "Check: Xenith Payout Signature Valid?"
     },
     {
@@ -623,10 +631,10 @@
       "type": "n8n-nodes-base.crypto",
       "typeVersion": 2,
       "position": [
-        5760,
-        29296
+        7248,
+        39584
       ],
-      "id": "97d00edc-00bd-4213-b2d0-14528ab4a3e5",
+      "id": "eed5adaa-802e-44ca-a4a7-beebed705e12",
       "name": "Crypto: Create Expected Xenith Payout Signature",
       "credentials": {
         "crypto": {
@@ -637,32 +645,32 @@
     },
     {
       "parameters": {
-        "content": "# Callback Payout\n\nFlow ini menerima callback payout dari XenithPay, memvalidasi signature webhook, mengecek status `SUCCESS`, lalu mengirim email notifikasi payout berhasil.\n\n## Alur\nWebhook: Xenith Payout Callback > Code: Build Payout Signature Validation Payload > Crypto: Create Expected Xenith Payout Signature > Check: Xenith Payout Signature Valid? > Email: Send Payout Success\n\n## Webhook URL\n- Test: `http://<n8n-host>/webhook-test/xenith-payout`\n- Production: `http://<n8n-host>/webhook/xenith-payout`\n\n`callbackUrlPayout` pada Global Variables harus sama dengan Production URL.",
+        "content": "# Callback Payout\n\nFlow ini menerima callback payout dari XenithPay, memvalidasi signature webhook, mengecek status `SUCCESS`, lalu mengirim email notifikasi payout berhasil.\n\n## Test vs Production\n- `webhook-test` di n8n hanya untuk tes manual saat editor sedang listen.\n- Callback XenithPay harus masuk ke `/webhook/xenith-payout`.\n- XenithPay sandbox tetap mengirim callback ke n8n production webhook, bukan ke `webhook-test`.\n\n## Webhook URL\n- Test: `http://<n8n-host>/webhook-test/xenith-payout`\n- Production: `http://<n8n-host>/webhook/xenith-payout`",
         "height": 448,
         "width": 2236
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        4832,
-        29056
+        6320,
+        39344
       ],
       "typeVersion": 1,
-      "id": "8d5b85d9-4006-4a55-a2b0-b62191220d72",
+      "id": "c94fb3a4-8d4b-4e37-9432-fc45fee2023a",
       "name": "Note: Callback Payout Flow"
     },
     {
       "parameters": {
-        "content": "# Create Payout\n\nFlow ini membuat payout/disbursement ke rekening bank atau e-wallet, memakai mapping channel dari tabel `payout_channels`.\n\n## Setup Wajib\n- Install community node **n8n-nodes-globals**.\n- Gunakan credential **WeselAja Global Variables** yang sama dengan flow payin.\n- Buat credential PostgreSQL bernama **database**.\n- Jalankan `xenithpay_channels_setup.sql`. File ini sudah membuat tabel payout dan seed channel; tidak ada file seed payout terpisah lagi.\n\n## Alur\nWebhook: Create Payout > Globals: Get Payout Constants > Postgres: Get Payout Channel > Code: Build Xenith Payout Payload > Crypto: Create Xenith Payout Signature > Crypto: Generate Payout Idempotency Key > HTTP: Create Xenith Payout\n\n## Input GET\n- `amount`: Nominal payout IDR.\n- `payoutChannel`: Kode channel dari `payout_channels.channel`, contoh `CENAIDJA`, `BMRIIDJA`, `DANA`, `GOPAY`.\n- `destinationPayoutAccount`: Nomor rekening atau akun tujuan.\n- `destinationPayoutAccountName`: Nama pemilik rekening atau akun tujuan.\n- `email`: Email notifikasi payout.\n\n## Contoh\nTest: `GET /webhook-test/create-payout?amount=100000&payoutChannel=CENAIDJA&destinationPayoutAccount=555563765328&destinationPayoutAccountName=Andi+Prasetyo&email=example@merchant.com`\n\nProduction: `GET /webhook/create-payout?amount=100000&payoutChannel=CENAIDJA&destinationPayoutAccount=555563765328&destinationPayoutAccountName=Andi+Prasetyo&email=example@merchant.com`\n\n## Catatan\nPayout production XenithPay baru dapat diproses setelah 1 jam.",
+        "content": "# Create Payout\n\nFlow ini membuat payout/disbursement ke rekening bank atau e-wallet, memakai mapping channel dari tabel `payout_channels`.\n\n## Setup Wajib\n- Install community node **n8n-nodes-globals**.\n- Gunakan credential **WeselAja Global Variables** yang sudah dibuat di note **Create Invoice / Payin**.\n- Buat credential PostgreSQL bernama **database**.\n- Jalankan `xenithpay_channels_setup.sql`.\n\n## Test vs Production\n- `xenithpayEndpoint` menentukan XenithPay sandbox atau production.\n- `/webhook-test/create-payout` vs `/webhook/create-payout` hanya menentukan mode webhook n8n.\n- `callbackUrlPayout` harus selalu ke `/webhook/xenith-payout`, bukan `/webhook-test/...`, termasuk saat XenithPay masih sandbox.\n\n## Input GET\n- `amount`: Nominal payout IDR.\n- `payoutChannel`: Kode channel dari `payout_channels.channel`, contoh `CENAIDJA`, `BMRIIDJA`, `DANA`, `GOPAY`.\n- `destinationPayoutAccount`: Nomor rekening atau akun tujuan.\n- `destinationPayoutAccountName`: Nama pemilik rekening atau akun tujuan.\n- `email`: Email notifikasi payout.\n\n## Contoh\nn8n Test URL: `GET /webhook-test/create-payout?amount=100000&referenceCode=REF-TEST-1&payoutChannel=CENAIDJA&destinationPayoutAccount=555563765328&destinationPayoutAccountName=Andi+Prasetyo&email=example@merchant.com`\n\nn8n Production URL: `GET /webhook/create-payout?amount=100000&referenceCode=REF-TEST-1&payoutChannel=CENAIDJA&destinationPayoutAccount=555563765328&destinationPayoutAccountName=Andi+Prasetyo&email=example@merchant.com`\n\n## Catatan\nPayout production XenithPay baru dapat diproses setelah 1 jam.",
         "height": 736,
         "width": 2236
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        4832,
-        28240
+        6320,
+        38528
       ],
       "typeVersion": 1,
-      "id": "ad9e7ce4-15a3-4b80-90b6-a41b9907f8f4",
+      "id": "13e99332-195b-4971-a8af-e3e38b0fd7f3",
       "name": "Note: Payout Flow"
     },
     {
@@ -678,10 +686,10 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        6256,
-        27920
+        7744,
+        38208
       ],
-      "id": "a8347bd0-e67c-4b34-b4be-5cca4d8d7def",
+      "id": "f1245d11-9689-4f00-9ec5-92e28d636a29",
       "name": "Email: Send Payin Status Notification",
       "webhookId": "9abf634a-dc2a-4fc0-b746-fb8c24faa449",
       "credentials": {
@@ -704,10 +712,10 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        6272,
-        29280
+        7760,
+        39568
       ],
-      "id": "4be1c4e3-1295-470d-91d7-1db855254aeb",
+      "id": "54d0c326-48b7-4fb4-a176-a7f52403fcd0",
       "name": "Email: Send Payout Success",
       "webhookId": "a5a6a75e-4893-4587-9e25-b8e4d5dba45c",
       "credentials": {
@@ -718,15 +726,1341 @@
       }
     },
     {
+      "parameters": {
+        "path": "create-invoice",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        6480,
+        36880
+      ],
+      "id": "794e326d-d249-4211-96bc-b9c170ef052c",
+      "name": "Webhook: Create Invoice",
+      "webhookId": "280024c9-a15d-4144-9b4d-8ec63233ffce"
+    },
+    {
+      "parameters": {
+        "path": "payment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        8848,
+        37248
+      ],
+      "id": "5d40d791-7105-4c9a-8fde-9f9dfc8246d0",
+      "name": "Webhook",
+      "webhookId": "6c0ffe7c-f44b-4694-a472-5e51bdf0bc84"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "invoices",
+          "mode": "list",
+          "cachedResultName": "invoices"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "reference_code",
+              "value": "={{ $('Webhook: Create Invoice').item.json.query.referenceCode }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        7328,
+        36880
+      ],
+      "id": "136835ae-ca67-4bd8-bd04-d27482abdec2",
+      "name": "Select rows from a table",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "76wpseHZgIlGdW8h",
+          "name": "database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0395fd27-a5c3-4ce8-9097-b009eb9a2ceb",
+              "leftValue": "={{ $json.isEmpty() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        7536,
+        36880
+      ],
+      "id": "e9655d5b-0990-486d-8298-19b30de219a1",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "invoices",
+          "mode": "list",
+          "cachedResultName": "invoices"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "initiated_amount": "={{ $('HTTP: Create Xenith Payin').item.json.initiatedAmount }}",
+            "payment_amount": "={{ $('HTTP: Create Xenith Payin').item.json.paymentAmount }}",
+            "fee_amount": "={{ $('HTTP: Create Xenith Payin').item.json.feeAmount }}",
+            "id": "={{ $('HTTP: Create Xenith Payin').item.json.id }}",
+            "currency": "={{ $('HTTP: Create Xenith Payin').item.json.currency }}",
+            "payment_method": "={{ $('HTTP: Create Xenith Payin').item.json.paymentMethod }}",
+            "payment_channel": "={{ $('HTTP: Create Xenith Payin').item.json.paymentChannel }}",
+            "payment_code": "={{ $('HTTP: Create Xenith Payin').item.json.paymentCode }}",
+            "payment_code_type": "={{ $('HTTP: Create Xenith Payin').item.json.paymentCodeType }}",
+            "reference_code": "={{ $('HTTP: Create Xenith Payin').item.json.referenceCode }}",
+            "customer_reference": "={{ $('HTTP: Create Xenith Payin').item.json.customerReference }}",
+            "customer_name": "={{ $('HTTP: Create Xenith Payin').item.json.customerName }}",
+            "status": "={{ $('HTTP: Create Xenith Payin').item.json.status }}",
+            "created_time": "={{ $('HTTP: Create Xenith Payin').item.json.createdTime }}",
+            "updated_time": "={{ $('HTTP: Create Xenith Payin').item.json.updatedTime }}",
+            "expiration_time": "={{ $('HTTP: Create Xenith Payin').item.json.expirationTime }}",
+            "description": "={{ $('HTTP: Create Xenith Payin').item.json.description }}",
+            "metadata": "={{ $('HTTP: Create Xenith Payin').item.json.metadata?$('HTTP: Create Xenith Payin').item.json.metadata.toJsonString():null }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": true,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "initiated_amount",
+              "displayName": "initiated_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "payment_amount",
+              "displayName": "payment_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fee_amount",
+              "displayName": "fee_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "payment_method",
+              "displayName": "payment_method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "payment_channel",
+              "displayName": "payment_channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "payment_code",
+              "displayName": "payment_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "payment_code_type",
+              "displayName": "payment_code_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "reference_code",
+              "displayName": "reference_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "customer_reference",
+              "displayName": "customer_reference",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "customer_name",
+              "displayName": "customer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_time",
+              "displayName": "created_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_time",
+              "displayName": "updated_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "expiration_time",
+              "displayName": "expiration_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "payer_account_name",
+              "displayName": "payer_account_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "payer_account_number",
+              "displayName": "payer_account_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "payer_payment_channel",
+              "displayName": "payer_payment_channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "metadata",
+              "displayName": "metadata",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "error_code",
+              "displayName": "error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        9184,
+        36848
+      ],
+      "id": "6a1b245e-e882-4caa-b7ae-91f733c837b6",
+      "name": "Insert rows in a table",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "76wpseHZgIlGdW8h",
+          "name": "database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ref = $input.first().json.reference_code;\n\nreturn [{\n  code: \"REFERENCE_ALREADY_EXISTS\",\n  message: `Reference code ${ref} already exists`\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7776,
+        37008
+      ],
+      "id": "62d6b6d4-d391-411c-b54a-ba37e9b3c75b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "payouts",
+          "mode": "list",
+          "cachedResultName": "payouts"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "initiated_amount": "={{ $json.initiatedAmount }}",
+            "sent_amount": "={{ $json.sentAmount }}",
+            "fee_amount": "={{ $json.feeAmount }}",
+            "id": "={{ $json.id }}",
+            "currency": "={{ $json.currency }}",
+            "destination_payout_channel": "={{ $json.destinationPayoutChannel }}",
+            "destination_payout_method": "={{ $json.destinationPayoutMethod }}",
+            "destination_payout_account": "={{ $json.destinationPayoutAccount }}",
+            "destination_payout_account_name": "={{ $json.destinationPayoutAccountName }}",
+            "reference_code": "={{ $json.referenceCode }}",
+            "customer_reference": "={{ $json.customerReference }}",
+            "status": "={{ $json.status }}",
+            "created_time": "={{ $json.createdTime }}",
+            "updated_time": "={{ $json.updatedTime }}",
+            "description": "={{ $json.description }}",
+            "payout_type": "={{ $json.payoutType }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": true,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "initiated_amount",
+              "displayName": "initiated_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sent_amount",
+              "displayName": "sent_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fee_amount",
+              "displayName": "fee_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "destination_payout_channel",
+              "displayName": "destination_payout_channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "destination_payout_method",
+              "displayName": "destination_payout_method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "destination_payout_account",
+              "displayName": "destination_payout_account",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "destination_payout_account_name",
+              "displayName": "destination_payout_account_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reference_code",
+              "displayName": "reference_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "customer_reference",
+              "displayName": "customer_reference",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_time",
+              "displayName": "created_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_time",
+              "displayName": "updated_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payout_type",
+              "displayName": "payout_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        8896,
+        39008
+      ],
+      "id": "b4d98499-79c1-4d85-b1c2-e78bb44e7607",
+      "name": "Insert rows in a table1",
+      "credentials": {
+        "postgres": {
+          "id": "76wpseHZgIlGdW8h",
+          "name": "database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "payouts",
+          "mode": "list",
+          "cachedResultName": "payouts"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "reference_code",
+              "value": "={{ $json.query.referenceCode }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        7328,
+        39120
+      ],
+      "id": "8a99ee6a-aac5-48be-a97b-9034cc55a8a2",
+      "name": "Select rows from a table1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "76wpseHZgIlGdW8h",
+          "name": "database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0395fd27-a5c3-4ce8-9097-b009eb9a2ceb",
+              "leftValue": "={{ $json.isEmpty() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        7552,
+        39120
+      ],
+      "id": "d9e7f6b0-f00b-4268-ad91-61109c59ad5b",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ref = $input.first().json.reference_code;\n\nreturn [{\n  code: \"REFERENCE_ALREADY_EXISTS\",\n  message: `Reference code ${ref} already exists`\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7792,
+        39232
+      ],
+      "id": "7829e110-603b-4b8a-8128-2290b73b06e5",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "invoices",
+          "mode": "list",
+          "cachedResultName": "invoices"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "initiated_amount": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.initiatedAmount }}",
+            "payment_amount": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.paymentAmount }}",
+            "fee_amount": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.feeAmount }}",
+            "id": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.id }}",
+            "currency": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.currency }}",
+            "payment_method": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.paymentMethod }}",
+            "payment_channel": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.paymentChannel }}",
+            "payment_code": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.paymentCode }}",
+            "payment_code_type": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.paymentCodeType }}",
+            "reference_code": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.referenceCode }}",
+            "customer_reference": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.customerReference }}",
+            "customer_name": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.customerName }}",
+            "status": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.status }}",
+            "created_time": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.createdTime }}",
+            "updated_time": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.updatedTime }}",
+            "expiration_time": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.expirationTime }}",
+            "description": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.description }}",
+            "payer_account_name": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.payerAccountName }}",
+            "payer_account_number": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.payerAccountNumber }}",
+            "payer_payment_channel": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.payerPaymentChannel }}",
+            "metadata": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.metadata?$('Webhook: Xenith Payin Callback').item.json.body.data.metadata.toJsonString():null }}",
+            "error_code": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.errorCode?$('Webhook: Xenith Payin Callback').item.json.body.data.errorCode:null }}",
+            "error_message": "={{ $('Webhook: Xenith Payin Callback').item.json.body.data.errorMessage? $('Webhook: Xenith Payin Callback').item.json.body.data.errorMessage:null }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": true,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "initiated_amount",
+              "displayName": "initiated_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payment_amount",
+              "displayName": "payment_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fee_amount",
+              "displayName": "fee_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payment_method",
+              "displayName": "payment_method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payment_channel",
+              "displayName": "payment_channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payment_code",
+              "displayName": "payment_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payment_code_type",
+              "displayName": "payment_code_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reference_code",
+              "displayName": "reference_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "customer_reference",
+              "displayName": "customer_reference",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "customer_name",
+              "displayName": "customer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_time",
+              "displayName": "created_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_time",
+              "displayName": "updated_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "expiration_time",
+              "displayName": "expiration_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payer_account_name",
+              "displayName": "payer_account_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "payer_account_number",
+              "displayName": "payer_account_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "payer_payment_channel",
+              "displayName": "payer_payment_channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metadata",
+              "displayName": "metadata",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "error_code",
+              "displayName": "error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        7952,
+        38208
+      ],
+      "id": "f710e91e-2e25-4931-b595-bd1169bb5913",
+      "name": "Update rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "76wpseHZgIlGdW8h",
+          "name": "database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "payouts",
+          "mode": "list",
+          "cachedResultName": "payouts"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "initiated_amount": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.initiatedAmount }}",
+            "sent_amount": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.sentAmount }}",
+            "fee_amount": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.feeAmount }}",
+            "id": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.id }}",
+            "currency": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.currency }}",
+            "destination_payout_channel": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.destinationPayoutChannel }}",
+            "destination_payout_method": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.destinationPayoutMethod }}",
+            "reference_code": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.referenceCode }}",
+            "customer_reference": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.customerReference }}",
+            "status": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.status }}",
+            "created_time": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.createdTime }}",
+            "updated_time": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.updatedTime }}",
+            "description": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.description }}",
+            "error_code": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.errorCode?$('Webhook: Xenith Payout Callback').item.json.body.data.errorCode:null }}",
+            "error_message": "={{ $('Webhook: Xenith Payout Callback').item.json.body.data.errorMessage?$('Webhook: Xenith Payout Callback').item.json.body.data.errorMessage:null }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": true,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "initiated_amount",
+              "displayName": "initiated_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sent_amount",
+              "displayName": "sent_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fee_amount",
+              "displayName": "fee_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "destination_payout_channel",
+              "displayName": "destination_payout_channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "destination_payout_method",
+              "displayName": "destination_payout_method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "destination_payout_account",
+              "displayName": "destination_payout_account",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "destination_payout_account_name",
+              "displayName": "destination_payout_account_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "reference_code",
+              "displayName": "reference_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "customer_reference",
+              "displayName": "customer_reference",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_time",
+              "displayName": "created_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_time",
+              "displayName": "updated_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payout_type",
+              "displayName": "payout_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "error_code",
+              "displayName": "error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "error_message",
+              "displayName": "error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        7968,
+        39568
+      ],
+      "id": "95c92f0a-6891-4272-abdb-81e98a536abc",
+      "name": "Update rows in a table1",
+      "credentials": {
+        "postgres": {
+          "id": "76wpseHZgIlGdW8h",
+          "name": "database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=<!DOCTYPE html>\n<html lang=\"id\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"/>\n\n  <!-- 🔥 TITLE TAB -->\n  <title>Status Pembayaran</title>\n\n  <!-- 🔥 FAVICON (ICON DI ADDRESS BAR) -->\n  <!-- Gunakan icon check (relevan dengan payment success) -->\n  <link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"https://cdn-icons-png.flaticon.com/512/190/190411.png\">\n  <link rel=\"icon\" type=\"image/png\" sizes=\"16x16\" href=\"https://cdn-icons-png.flaticon.com/512/190/190411.png\">\n\n  <!-- 🔥 BASIC RESET + FONT -->\n  <style>\n    * {\n      box-sizing: border-box;\n    }\n\n    body {\n      margin: 0;\n      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;\n\n      /* 🔥 Background gradient biar gak flat */\n      background: radial-gradient(circle at top, #eef2ff, #e5e7eb);\n\n      /* 🔥 Centering content */\n      display: flex;\n      align-items: center;\n      justify-content: center;\n\n      min-height: 100vh;\n      padding: 16px;\n    }\n\n    /* 🔥 CARD UTAMA */\n    .card {\n      width: 100%;\n      max-width: 480px;\n\n      background: white;\n      border-radius: 20px;\n\n      padding: 24px 20px;\n      text-align: center;\n\n      /* 🔥 Shadow biar ada depth */\n      box-shadow: 0 12px 30px rgba(0,0,0,0.08);\n\n      /* 🔥 Smooth appear */\n      animation: fadeUp 0.4s ease;\n    }\n\n    /* 🔥 Desktop spacing lebih lega */\n    @media (min-width: 768px) {\n      .card {\n        padding: 32px;\n      }\n    }\n\n    @keyframes fadeUp {\n      from {\n        opacity: 0;\n        transform: translateY(20px);\n      }\n      to {\n        opacity: 1;\n        transform: translateY(0);\n      }\n    }\n\n    /* 🔥 ICON STATUS */\n    .icon {\n      width: 64px;\n      height: 64px;\n      margin: 0 auto 12px;\n\n      border-radius: 50%;\n\n      display: flex;\n      align-items: center;\n      justify-content: center;\n\n      font-size: 28px;\n      color: white;\n\n      /* default success */\n      background: #22c55e;\n      box-shadow: 0 8px 18px rgba(34,197,94,0.3);\n    }\n\n    /* 🔥 VARIASI STATUS (bisa dipakai nanti) */\n    .icon.failed {\n      background: #ef4444;\n      box-shadow: 0 8px 18px rgba(239,68,68,0.3);\n    }\n\n    .icon.expired {\n      background: #6b7280;\n      box-shadow: 0 8px 18px rgba(107,114,128,0.3);\n    }\n\n    /* 🔥 TEXT HEADER */\n    .subtitle {\n      color: #6b7280;\n      font-size: 14px;\n    }\n\n    .title {\n      font-size: 20px;\n      font-weight: 600;\n      margin-top: 4px;\n    }\n\n    /* 🔥 COLOR BASED ON STATUS */\n    .success-text { color: #16a34a; }\n    .failed-text { color: #dc2626; }\n    .expired-text { color: #6b7280; }\n\n    /* 🔥 NOMINAL */\n    .amount {\n      font-size: 30px;\n      font-weight: 700;\n      margin: 16px 0 20px;\n    }\n\n    @media (min-width: 768px) {\n      .amount {\n        font-size: 36px;\n      }\n    }\n\n    /* 🔥 DIVIDER */\n    .divider {\n      height: 1px;\n      background: #eee;\n      margin: 16px 0;\n    }\n\n    /* 🔥 DETAIL ROW */\n    .row {\n      display: flex;\n      justify-content: space-between;\n      padding: 10px 0;\n      font-size: 14px;\n    }\n\n    .label {\n      color: #6b7280;\n    }\n\n    .value {\n      font-weight: 500;\n      text-align: right;\n      max-width: 60%;\n      word-break: break-word;\n    }\n\n    /* 🔥 MESSAGE */\n    .message {\n      margin-top: 16px;\n      font-size: 13px;\n      color: #6b7280;\n    }\n\n    /* 🔥 BUTTON */\n    .btn {\n      margin-top: 20px;\n      display: block;\n      width: 100%;\n      padding: 14px;\n\n      border-radius: 12px;\n      background: linear-gradient(135deg, #111827, #1f2937);\n\n      color: white;\n      text-decoration: none;\n      font-weight: 600;\n\n      transition: 0.2s;\n    }\n\n    .btn:active {\n      transform: scale(0.98);\n    }\n  </style>\n</head>\n\n<body>\n\n  <div class=\"card\">\n\n    <!-- 🔥 ICON DINAMIS -->\n    <div class=\"icon\n      {{\n        $('Select rows from a table2').item.json.status === 'FAILED'\n          ? 'failed'\n          : $('Select rows from a table2').item.json.status === 'EXPIRED'\n          ? 'expired'\n          : ''\n      }}\">\n      \n      {{\n        $('Select rows from a table2').item.json.status === 'SUCCESS'\n          ? '✓'\n          : $('Select rows from a table2').item.json.status === 'FAILED'\n          ? '✕'\n          : '⏰'\n      }}\n    </div>\n\n    <!-- 🔥 HEADER -->\n    <div class=\"subtitle\">Status Pembayaran</div>\n\n    <div class=\"title\n      {{\n        $('Select rows from a table2').item.json.status === 'SUCCESS'\n          ? 'success-text'\n          : $('Select rows from a table2').item.json.status === 'FAILED'\n          ? 'failed-text'\n          : 'expired-text'\n      }}\">\n      \n      {{\n        $('Select rows from a table2').item.json.status === 'SUCCESS'\n          ? 'Pembayaran Berhasil'\n          : $('Select rows from a table2').item.json.status === 'FAILED'\n          ? 'Pembayaran Gagal'\n          : 'Pembayaran Kedaluwarsa'\n      }}\n    </div>\n\n    <!-- 🔥 AMOUNT -->\n    <div class=\"amount\" id=\"amount\">-</div>\n\n    <div class=\"divider\"></div>\n\n    <!-- 🔥 DETAIL -->\n    <div class=\"row\">\n      <div class=\"label\">Metode</div>\n      <div class=\"value\">{{ $json.name || 'QRIS' }}</div>\n    </div>\n\n    <div class=\"row\">\n      <div class=\"label\">Waktu Update</div>\n      <div class=\"value\" id=\"time\">-</div>\n    </div>\n\n    <!-- 🔥 MESSAGE -->\n    <div class=\"message\">\n      {{\n        $('Select rows from a table2').item.json.status === 'SUCCESS'\n          ? 'Pembayaran telah diterima. Terima kasih 🙌'\n          : $('Select rows from a table2').item.json.status === 'FAILED'\n          ? 'Pembayaran gagal. Silakan coba lagi.'\n          : 'Pembayaran tidak diselesaikan tepat waktu.'\n      }}\n    </div>\n\n    <!-- 🔥 CTA -->\n    <a href=\"{{ $('Global Constants').item.json.constants.homepageURL }}\" class=\"btn\">\n  Kembali ke Beranda\n</a>\n\n  </div>\n\n  <!-- 🔥 SCRIPT FORMAT DATA -->\n  <script>\n    // Ambil data dari n8n\n    const amount = {{ $('Select rows from a table2').item.json.payment_amount }};\n    const updatedTime = \"{{ $('Select rows from a table2').item.json.updated_time }}\";\n\n    // 🔥 Format Rupiah (tanpa desimal)\n    const formattedAmount = new Intl.NumberFormat('id-ID', {\n      style: 'currency',\n      currency: 'IDR',\n      minimumFractionDigits: 0\n    }).format(amount);\n\n    document.getElementById(\"amount\").innerText = formattedAmount;\n\n    // 🔥 Format waktu lokal Indonesia (sampai detik)\n    const date = new Date(updatedTime);\n\n    document.getElementById(\"time\").innerText = date.toLocaleString('id-ID', {\n      day: '2-digit',\n      month: '2-digit',\n      year: 'numeric',\n      hour: '2-digit',\n      minute: '2-digit',\n      second: '2-digit'\n    });\n  </script>\n\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        9680,
+        37248
+      ],
+      "id": "f586cc5d-26e7-4376-9d6d-845033d41e7e",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "invoices",
+          "mode": "list",
+          "cachedResultName": "invoices"
+        },
+        "limit": 1,
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "={{ $('Webhook').item.json.query.transactionId }}"
+            },
+            {
+              "column": "reference_code",
+              "value": "={{ $('Webhook').item.json.query.referenceCode }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        9264,
+        37248
+      ],
+      "id": "7cfdf648-710e-42c3-bc5a-7e3e4a7acf45",
+      "name": "Select rows from a table2",
+      "credentials": {
+        "postgres": {
+          "id": "76wpseHZgIlGdW8h",
+          "name": "database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "payment_channels",
+          "mode": "list",
+          "cachedResultName": "payment_channels"
+        },
+        "limit": 1,
+        "where": {
+          "values": [
+            {
+              "column": "channel",
+              "value": "={{ $json.payment_channel }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        9472,
+        37248
+      ],
+      "id": "c32c44d9-604e-442c-8b6e-059f46098e27",
+      "name": "Select rows from a table3",
+      "credentials": {
+        "postgres": {
+          "id": "76wpseHZgIlGdW8h",
+          "name": "database"
+        }
+      }
+    },
+    {
       "parameters": {},
       "type": "n8n-nodes-globals.globalConstants",
       "typeVersion": 1,
       "position": [
-        5216,
-        26592
+        9056,
+        37248
       ],
-      "id": "1152ced8-307d-4ddd-8678-abfc864c9dff",
-      "name": "Globals: Get Payin Constants",
+      "id": "d34c49dc-4382-415f-b9dd-095dcf645ac9",
+      "name": "Global Constants",
+      "credentials": {
+        "globalConstantsApi": {
+          "id": "DJ97H4EGBW02zmCm",
+          "name": "WeselAja Global Variables"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-globals.globalConstants",
+      "typeVersion": 1,
+      "position": [
+        7120,
+        39120
+      ],
+      "id": "3088430a-d20e-41ea-ab70-a2bd621e6676",
+      "name": "Globals: Get Payout Constants",
       "credentials": {
         "globalConstantsApi": {
           "id": "DJ97H4EGBW02zmCm",
@@ -736,35 +2070,79 @@
     },
     {
       "parameters": {
-        "path": "create-invoice",
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "variables",
+          "mode": "list",
+          "cachedResultName": "variables"
+        },
+        "returnAll": true,
+        "where": {
+          "values": [
+            {
+              "column": "key",
+              "value": "xenithpayEndpoint"
+            },
+            {
+              "column": "key",
+              "value": "n8nURL"
+            },
+            {
+              "column": "key",
+              "value": "homepageURL"
+            }
+          ]
+        },
+        "combineConditions": "OR",
         "options": {}
       },
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
       "position": [
-        4992,
-        26592
+        6688,
+        36880
       ],
-      "id": "84134b6d-a350-4975-ad98-6e8e2d252d32",
-      "name": "Webhook: Create Invoice",
-      "webhookId": "280024c9-a15d-4144-9b4d-8ec63233ffce"
-    },
-    {
-      "parameters": {},
-      "type": "n8n-nodes-globals.globalConstants",
-      "typeVersion": 1,
-      "position": [
-        5712,
-        28784
-      ],
-      "id": "6c797f87-0345-4807-8bc1-1af4b3dc9dbb",
-      "name": "Globals: Get Payout Constants",
+      "id": "c27322c7-943c-4b75-be77-2ff3a387b8fc",
+      "name": "Select rows from a table4",
       "credentials": {
-        "globalConstantsApi": {
-          "id": "DJ97H4EGBW02zmCm",
-          "name": "WeselAja Global Variables"
+        "postgres": {
+          "id": "76wpseHZgIlGdW8h",
+          "name": "database"
         }
       }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        6896,
+        36880
+      ],
+      "id": "8d82eb9c-d98a-48e1-a968-57270ecffac2",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json.data.reduce((acc, item) => {\n  acc[item.key] = item.value;\n  return acc;\n}, {});\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7104,
+        36880
+      ],
+      "id": "8ee0f130-d436-44cd-99a4-2307c1cee6b3",
+      "name": "Code in JavaScript2"
     }
   ],
   "pinData": {},
@@ -1004,18 +2382,153 @@
       "main": [
         [
           {
-            "node": "Globals: Get Payin Constants",
+            "node": "Select rows from a table4",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Globals: Get Payin Constants": {
+    "Select rows from a table": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
       "main": [
         [
           {
             "node": "Postgres: Get Payment Channel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email: Send Invoice Payment Options": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Create Xenith Payout": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select rows from a table1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Postgres: Get Payout Channel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email: Send Payin Status Notification": {
+      "main": [
+        [
+          {
+            "node": "Update rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email: Send Payout Success": {
+      "main": [
+        [
+          {
+            "node": "Update rows in a table1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Global Constants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select rows from a table2": {
+      "main": [
+        [
+          {
+            "node": "Select rows from a table3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select rows from a table3": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Global Constants": {
+      "main": [
+        [
+          {
+            "node": "Select rows from a table2",
             "type": "main",
             "index": 0
           }
@@ -1026,7 +2539,40 @@
       "main": [
         [
           {
-            "node": "Postgres: Get Payout Channel",
+            "node": "Select rows from a table1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select rows from a table4": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Select rows from a table",
             "type": "main",
             "index": 0
           }
@@ -1039,7 +2585,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "3ef6e59d-7b3a-4db1-a02d-8d031eef3628",
+  "versionId": "766e9df9-2510-4c7a-adb8-b0023889a83d",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "fd68e697f63f15d04e3ee045f2e66a3d1a3fe462f5708a19c54e73572f40074e"

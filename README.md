@@ -75,6 +75,36 @@ Keterangan:
 
 Gunakan path `/webhook/`, bukan `/webhook-test/`, untuk `callbackUrlPayin` dan `callbackUrlPayout`. XenithPay mengirim callback ketika workflow aktif, sehingga callback harus mengarah ke production webhook n8n.
 
+## Bedakan 2 Mode
+
+Ada dua hal berbeda yang sering tertukar:
+
+| Layer | Test / Sandbox | Production | Diatur dari | Dampak |
+| --- | --- | --- | --- | --- |
+| XenithPay | `https://openapi.sandbox.xenithpay.com` | `https://openapi.xenithpay.com` | `xenithpayEndpoint` dan credential XenithPay | Menentukan request API dikirim ke environment XenithPay yang mana. |
+| n8n Webhook | `/webhook-test/...` | `/webhook/...` | Mode webhook di n8n | Menentukan request masuk ke node webhook test editor atau workflow aktif. |
+
+Ringkasnya:
+
+- `XenithPay sandbox/production` menentukan environment API XenithPay.
+- `n8n /webhook-test/ vs /webhook/` menentukan mode webhook di n8n.
+- Keduanya tidak sama, dan bisa saling silang.
+
+Kombinasi yang paling penting:
+
+| Kombinasi | Kapan dipakai | Catatan |
+| --- | --- | --- |
+| XenithPay sandbox + n8n production webhook | Integrasi sandbox end-to-end | Ini kombinasi yang paling umum dipakai untuk uji callback XenithPay. API tetap sandbox, tapi callback URL harus `/webhook/...`. |
+| XenithPay sandbox + n8n test webhook | Tes manual dari browser/Postman ke node webhook n8n | Cocok untuk trigger manual saat editor n8n sedang `Listen for test event`, tapi tidak cocok untuk callback otomatis dari XenithPay. |
+| XenithPay production + n8n production webhook | Live production | Pakai endpoint dan credential production, workflow harus aktif. |
+| XenithPay production + n8n test webhook | Tidak direkomendasikan | Callback dan flow live tidak seharusnya diarahkan ke `/webhook-test/...`. |
+
+Aturan praktis:
+
+- Kalau yang berubah adalah `xenithpayEndpoint` atau credential XenithPay, berarti Anda sedang pindah environment XenithPay.
+- Kalau yang berubah hanya `/webhook-test/` menjadi `/webhook/`, berarti Anda hanya sedang pindah mode webhook n8n.
+- Callback dari XenithPay selalu arahkan ke `/webhook/...`, bukan `/webhook-test/...`, termasuk saat masih memakai XenithPay sandbox.
+
 ## Database
 
 Workflow membutuhkan dua tabel lookup:
@@ -94,19 +124,17 @@ File tersebut melakukan:
 
 - `CREATE TABLE IF NOT EXISTS public.payment_channels`
 - `CREATE TABLE IF NOT EXISTS public.payout_channels`
-- Membuat index lookup pada kolom `channel`
+- Membuat unique index pada kolom `channel`
 - Insert seed channel payin dan payout
-- `ON CONFLICT (id) DO UPDATE` agar aman dijalankan ulang
+- `ON CONFLICT (channel) DO UPDATE` agar aman dijalankan ulang
 
 Struktur kolom kedua tabel sama:
 
 | Kolom | Tipe | Keterangan |
 | --- | --- | --- |
-| `id` | UUID | Primary key data channel. |
 | `method` | VARCHAR(64) | Metode XenithPay, misalnya `QR_CODE`, `VIRTUAL_ACCOUNT`, `BANK_TRANSFER`, atau `EWALLET`. |
-| `channel` | VARCHAR(64) | Kode channel yang dikirim dari query parameter webhook. |
+| `channel` | VARCHAR(64) | Kode channel unik yang dikirim dari query parameter webhook. |
 | `name` | VARCHAR(160) | Nama channel untuk dibaca manusia. |
-| `created_at` | TIMESTAMPTZ | Timestamp seed channel. |
 
 Node PostgreSQL melakukan lookup berdasarkan kolom `channel`:
 
@@ -152,6 +180,8 @@ Contoh:
 GET https://<n8n-url>/webhook/create-invoice?customerName=John&email=example@customer.com&initiated_amount=50000&paymentChannel=BRI.VA&phone_number=08123456789&referenceCode=REF-001&description=Pembayaran+Produk
 ```
 
+`/webhook-test/` dan `/webhook/` di URL atas hanya mengubah mode trigger n8n. Environment XenithPay untuk request payin tetap mengikuti nilai `xenithpayEndpoint`.
+
 ### 2. Simulate Payin
 
 Flow ini hanya untuk sandbox. Gunakan untuk mensimulasikan hasil pembayaran setelah invoice dibuat.
@@ -184,6 +214,8 @@ Endpoint simulator memakai URL sandbox hardcoded:
 https://openapi.sandbox.xenithpay.com/v1/simulator/transaction
 ```
 
+Flow ini hanya ada di XenithPay sandbox. Pergantian `/webhook-test/` ke `/webhook/` hanya mengubah cara n8n menerima trigger, bukan mengubah simulator menjadi production.
+
 Nonaktifkan atau hapus flow simulator saat workflow dipakai untuk production.
 
 ### 3. Callback Payin
@@ -206,6 +238,8 @@ Webhook path:
 | --- | --- |
 | Test | `https://<n8n-url>/webhook-test/xenith-payin` |
 | Production | `https://<n8n-url>/webhook/xenith-payin` |
+
+Untuk callback XenithPay, gunakan URL production n8n `/webhook/xenith-payin`, bahkan saat request API masih mengarah ke XenithPay sandbox.
 
 Status email yang didukung: `SUCCESS`, `FAILED`, dan `EXPIRED`.
 
@@ -241,6 +275,8 @@ Contoh:
 GET https://<n8n-url>/webhook/create-payout?amount=100000&payoutChannel=CENAIDJA&destinationPayoutAccount=555563765328&destinationPayoutAccountName=Andi+Prasetyo&email=example@merchant.com
 ```
 
+`/webhook-test/` dan `/webhook/` di URL atas hanya mengubah mode trigger n8n. Environment payout XenithPay tetap mengikuti nilai `xenithpayEndpoint`.
+
 Catatan production: transaksi payout di XenithPay production baru dapat diproses setelah 1 jam.
 
 ### 5. Callback Payout
@@ -263,6 +299,8 @@ Webhook path:
 | --- | --- |
 | Test | `https://<n8n-url>/webhook-test/xenith-payout` |
 | Production | `https://<n8n-url>/webhook/xenith-payout` |
+
+Untuk callback XenithPay, gunakan URL production n8n `/webhook/xenith-payout`, bahkan saat request API masih mengarah ke XenithPay sandbox.
 
 ## Signature
 
