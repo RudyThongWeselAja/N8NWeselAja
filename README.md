@@ -1,42 +1,52 @@
 # XenithPay n8n Workflow Template
 
-Template ini berisi workflow n8n untuk integrasi XenithPay di environment sandbox. Di dalamnya sudah ada flow untuk membuat invoice payin, simulasi pembayaran sandbox, menerima callback payin, membuat payout, dan menerima callback payout.
+Template ini berisi workflow n8n untuk integrasi XenithPay. Paketnya sudah siap untuk sandbox, lalu bisa dipindah ke production dengan mengganti credential XenithPay dan nilai `xenithpayEndpoint` di tabel `variables`.
 
-Dokumentasi ini sudah memakai setup database terpadu: schema tabel dan seed data channel berada dalam satu file SQL, yaitu `xenithpay_channels_setup.sql`.
+Semua setup database sekarang dipusatkan di `xenithpay_database_setup.sql`. File itu membuat schema transaksi, tabel variables, lookup channel, dan seed channel bawaan.
+
+- `payment_channels`
+- `payout_channels`
+- `variables`
+- `invoices`
+- `payouts`
+
+Lalu mengisi seed channel dan starter row untuk konfigurasi workflow.
 
 ## Isi Paket
 
 | File | Keterangan |
 | --- | --- |
 | `Xenithpay Template.json` | Workflow n8n yang di-import ke instance n8n. |
-| `xenithpay_channels_setup.sql` | Satu file SQL untuk membuat tabel `payment_channels` dan `payout_channels`, sekaligus mengisi seed channel. |
+| `xenithpay_database_setup.sql` | Setup tabel database workflow: `variables`, `invoices`, `payouts`, `payment_channels`, dan `payout_channels`, plus seed bawaan. |
 | `README.md` | Panduan setup dan penggunaan workflow. |
-
-Tidak ada file seed terpisah yang perlu dijalankan. Semua kebutuhan database channel sekarang ada di `xenithpay_channels_setup.sql`.
 
 ## Prasyarat
 
 | Komponen | Keterangan |
 | --- | --- |
 | n8n | Self-hosted atau cloud instance yang mendukung workflow JSON ini. |
-| Community node | Install `n8n-nodes-globals` lewat Settings > Community Nodes. |
-| PostgreSQL | Dipakai untuk mapping channel payin dan payout. |
+| PostgreSQL | Dipakai untuk lookup channel, variabel workflow, dan tabel transaksi aplikasi Anda. |
 | SMTP | Dipakai untuk email invoice dan notifikasi transaksi. |
-| Public URL | Domain publik atau ngrok agar webhook callback XenithPay bisa masuk ke n8n. |
-| XenithPay sandbox | API sandbox memakai `https://openapi.sandbox.xenithpay.com`. |
+| Public URL | Domain publik atau tunnel seperti ngrok agar callback XenithPay bisa masuk ke n8n. |
+| XenithPay | Akun sandbox atau production, lengkap dengan API key dan secret yang sesuai. |
 
 ## Setup Cepat
 
 1. Import `Xenithpay Template.json` ke n8n.
-2. Buat credential yang dibutuhkan: API key XenithPay, secret HMAC, global variables, PostgreSQL, dan SMTP.
-3. Jalankan file database terpadu:
+2. Buat credential yang dipakai workflow:
+   - `Xenith-Api-Key`
+   - `Xenith-Secret-Key`
+   - `xenith-web-signature-secret`
+   - `database`
+   - `SMTP`
+3. Jalankan setup SQL:
 
 ```bash
-psql -h <host> -U <user> -d <database> -f xenithpay_channels_setup.sql
+psql -h <host> -U <user> -d <database> -f xenithpay_database_setup.sql
 ```
 
-4. Isi global variables dengan endpoint dan callback URL public.
-5. Aktifkan workflow, lalu panggil webhook `create-invoice`, `simulate-payin`, atau `create-payout` sesuai kebutuhan.
+4. Ganti placeholder di tabel `public.variables` sesuai domain dan environment Anda.
+5. Aktifkan workflow, lalu gunakan webhook yang dibutuhkan.
 
 ## Credentials n8n
 
@@ -45,90 +55,101 @@ psql -h <host> -U <user> -d <database> -f xenithpay_channels_setup.sql
 | `Xenith-Api-Key` | HTTP Header Auth | Header autentikasi request ke XenithPay. |
 | `Xenith-Secret-Key` | Crypto HMAC | Signature request payin, payout, dan simulator. |
 | `xenith-web-signature-secret` | Crypto HMAC | Validasi signature callback dari XenithPay. |
-| `WeselAja Global Variables` | Global Constants Api | Menyimpan endpoint dan callback URL. |
-| `database` | PostgreSQL | Query channel dari tabel `payment_channels` dan `payout_channels`. |
+| `database` | PostgreSQL | Query lookup table dan tabel transaksi. |
 | `SMTP` | SMTP | Mengirim invoice dan notifikasi email. |
 
-Nama credential di atas mengikuti nama yang dipakai di workflow. Jika nama credential di n8n berbeda, pilih ulang credential pada node terkait setelah import.
+Nama credential di atas mengikuti nama yang sudah dipakai di workflow. Kalau nama credential di instance n8n Anda berbeda, pilih ulang credential pada node terkait setelah import.
 
-## Global Variables
+## Tabel `variables`
 
-Workflow memakai community node `n8n-nodes-globals`, jadi endpoint dan callback URL cukup diatur satu kali di credential `WeselAja Global Variables`.
+Workflow tidak lagi memakai community node `n8n-nodes-globals`. Semua variabel runtime sekarang dibaca dari tabel PostgreSQL `public.variables`.
 
-Set format credential ke `Key-value pairs`, lalu isi:
+Nilai awal dari file SQL sengaja memakai placeholder:
 
-```text
-xenithpayEndpoint=https://openapi.sandbox.xenithpay.com
-callbackUrlPayin=https://<your-public-url>/webhook/xenith-payin
-callbackUrlPayout=https://<your-public-url>/webhook/xenith-payout
-redirectUrl=https://www.weselaja.com/
+```sql
+INSERT INTO public.variables (key, value) VALUES
+  ('xenithpayEndpoint', '<xenithpay-api>'),
+  ('n8nURL', '<your-n8n-url>'),
+  ('homepageURL', '<your-homepage-url>')
+ON CONFLICT (key) DO UPDATE
+SET value = EXCLUDED.value;
 ```
 
-Keterangan:
+Setelah menjalankan `xenithpay_database_setup.sql`, ganti placeholder tersebut di database:
+
+```sql
+UPDATE public.variables
+SET value = CASE key
+  WHEN 'xenithpayEndpoint' THEN 'https://openapi.sandbox.xenithpay.com'
+  WHEN 'n8nURL' THEN 'https://n8n.example.com'
+  WHEN 'homepageURL' THEN 'https://www.example.com'
+END
+WHERE key IN ('xenithpayEndpoint', 'n8nURL', 'homepageURL');
+```
+
+Keterangan tiap key:
 
 | Key | Keterangan |
 | --- | --- |
-| `xenithpayEndpoint` | Base URL XenithPay. Untuk sandbox gunakan `https://openapi.sandbox.xenithpay.com`; untuk production gunakan `https://openapi.xenithpay.com`. |
-| `callbackUrlPayin` | URL callback payin yang mengarah ke webhook production `/webhook/xenith-payin`. |
-| `callbackUrlPayout` | URL callback payout yang mengarah ke webhook production `/webhook/xenith-payout`. |
-| `redirectUrl` | URL tujuan setelah customer menyelesaikan pembayaran. |
+| `xenithpayEndpoint` | Ganti `<xenithpay-api>` dengan base URL XenithPay. Sandbox pakai `https://openapi.sandbox.xenithpay.com`, production pakai `https://openapi.xenithpay.com`. |
+| `n8nURL` | Ganti `<your-n8n-url>` dengan public base URL n8n, misalnya domain production atau ngrok. Jangan pakai trailing slash. |
+| `homepageURL` | Ganti `<your-homepage-url>` dengan URL tujuan tombol `Kembali ke Beranda` pada halaman status pembayaran. |
 
-Gunakan path `/webhook/`, bukan `/webhook-test/`, untuk `callbackUrlPayin` dan `callbackUrlPayout`. XenithPay mengirim callback ketika workflow aktif, sehingga callback harus mengarah ke production webhook n8n.
+Nilai turunan yang dibentuk otomatis oleh workflow:
+
+- Callback payin: `n8nURL + /webhook/xenith-payin`
+- Callback payout: `n8nURL + /webhook/xenith-payout`
+- Redirect status pembayaran: `n8nURL + /webhook/payment?referenceCode=...`
+
+Jadi tidak ada lagi key terpisah seperti `callbackUrlPayin`, `callbackUrlPayout`, atau `redirectUrl`.
 
 ## Bedakan 2 Mode
 
-Ada dua hal berbeda yang sering tertukar:
+Ada dua hal yang sering ketuker:
 
-| Layer | Test / Sandbox | Production | Diatur dari | Dampak |
+| Layer | Sandbox / Test | Production | Diatur dari | Dampak |
 | --- | --- | --- | --- | --- |
 | XenithPay | `https://openapi.sandbox.xenithpay.com` | `https://openapi.xenithpay.com` | `xenithpayEndpoint` dan credential XenithPay | Menentukan request API dikirim ke environment XenithPay yang mana. |
-| n8n Webhook | `/webhook-test/...` | `/webhook/...` | Mode webhook di n8n | Menentukan request masuk ke node webhook test editor atau workflow aktif. |
+| n8n Webhook | `/webhook-test/...` | `/webhook/...` | Mode webhook di n8n | Menentukan trigger masuk ke editor test atau workflow aktif. |
 
 Ringkasnya:
 
-- `XenithPay sandbox/production` menentukan environment API XenithPay.
-- `n8n /webhook-test/ vs /webhook/` menentukan mode webhook di n8n.
-- Keduanya tidak sama, dan bisa saling silang.
+- `xenithpayEndpoint` menentukan sandbox atau production di sisi XenithPay.
+- `/webhook-test/` vs `/webhook/` hanya menentukan mode webhook n8n.
+- Callback dari XenithPay harus selalu diarahkan ke `/webhook/...`, bukan `/webhook-test/...`.
 
-Kombinasi yang paling penting:
+Kombinasi yang paling umum:
 
 | Kombinasi | Kapan dipakai | Catatan |
 | --- | --- | --- |
-| XenithPay sandbox + n8n production webhook | Integrasi sandbox end-to-end | Ini kombinasi yang paling umum dipakai untuk uji callback XenithPay. API tetap sandbox, tapi callback URL harus `/webhook/...`. |
-| XenithPay sandbox + n8n test webhook | Tes manual dari browser/Postman ke node webhook n8n | Cocok untuk trigger manual saat editor n8n sedang `Listen for test event`, tapi tidak cocok untuk callback otomatis dari XenithPay. |
-| XenithPay production + n8n production webhook | Live production | Pakai endpoint dan credential production, workflow harus aktif. |
-| XenithPay production + n8n test webhook | Tidak direkomendasikan | Callback dan flow live tidak seharusnya diarahkan ke `/webhook-test/...`. |
-
-Aturan praktis:
-
-- Kalau yang berubah adalah `xenithpayEndpoint` atau credential XenithPay, berarti Anda sedang pindah environment XenithPay.
-- Kalau yang berubah hanya `/webhook-test/` menjadi `/webhook/`, berarti Anda hanya sedang pindah mode webhook n8n.
-- Callback dari XenithPay selalu arahkan ke `/webhook/...`, bukan `/webhook-test/...`, termasuk saat masih memakai XenithPay sandbox.
+| XenithPay sandbox + n8n production webhook | Uji end-to-end callback | Ini setup paling umum saat development. API masih sandbox, tapi callback tetap masuk ke workflow aktif. |
+| XenithPay sandbox + n8n test webhook | Tes manual dari browser atau Postman | Cocok saat `Listen for test event`, tapi bukan untuk callback otomatis dari XenithPay. |
+| XenithPay production + n8n production webhook | Live production | Pakai endpoint dan credential production. |
 
 ## Database
 
-Workflow membutuhkan dua tabel lookup:
+Template ini mengandalkan schema dari `xenithpay_database_setup.sql`:
 
 | Tabel | Dipakai oleh | Isi |
 | --- | --- | --- |
-| `payment_channels` | Create Invoice / Payin | 14 channel payin: QRIS, virtual account, dan e-wallet. |
+| `variables` | Create Invoice, Create Payout, Payment Status Page | Konfigurasi environment dan base URL workflow. |
+| `invoices` | Create Invoice, Callback Payin, Payment Status Page | Data transaksi payin dan status invoice. |
+| `payouts` | Create Payout, Callback Payout | Data transaksi payout/disbursement. |
+| `payment_channels` | Create Invoice / Payin | 14 channel payin: QRIS, VA, dan e-wallet. |
 | `payout_channels` | Create Payout | 31 channel payout: bank transfer dan e-wallet. |
 
-Semua schema dan seed ada di satu file:
+File SQL tersebut melakukan:
 
-```bash
-psql -h <host> -U <user> -d <database> -f xenithpay_channels_setup.sql
-```
-
-File tersebut melakukan:
-
+- `CREATE TABLE IF NOT EXISTS public.variables`
+- `CREATE TABLE IF NOT EXISTS public.invoices`
+- `CREATE TABLE IF NOT EXISTS public.payouts`
 - `CREATE TABLE IF NOT EXISTS public.payment_channels`
 - `CREATE TABLE IF NOT EXISTS public.payout_channels`
-- Membuat unique index pada kolom `channel`
-- Insert seed channel payin dan payout
-- `ON CONFLICT (channel) DO UPDATE` agar aman dijalankan ulang
+- Membuat unique key channel untuk tabel payin dan payout
+- Mengisi seed `payment_channels` dan `payout_channels`
+- Mengisi starter row `variables` tanpa menimpa nilai yang sudah Anda ubah
 
-Struktur kolom kedua tabel sama:
+Struktur lookup table channel:
 
 | Kolom | Tipe | Keterangan |
 | --- | --- | --- |
@@ -136,31 +157,59 @@ Struktur kolom kedua tabel sama:
 | `channel` | VARCHAR(64) | Kode channel unik yang dikirim dari query parameter webhook. |
 | `name` | VARCHAR(160) | Nama channel untuk dibaca manusia. |
 
-Node PostgreSQL melakukan lookup berdasarkan kolom `channel`:
+Struktur tabel `variables`:
 
-- `paymentChannel` pada webhook `create-invoice` dicocokkan ke `payment_channels.channel`
-- `payoutChannel` pada webhook `create-payout` dicocokkan ke `payout_channels.channel`
+| Kolom | Tipe | Keterangan |
+| --- | --- | --- |
+| `key` | text | Nama variabel workflow. Menjadi primary key. |
+| `value` | text | Nilai variabel. |
 
-Pastikan nilai query parameter sama persis dengan kode channel di database, misalnya `BRI.VA`, `QRIS`, `CENAIDJA`, atau `DANA`.
+Tabel `invoices` dan `payouts` juga sudah dibuat oleh file SQL ini, termasuk `reference_code` unique key untuk mencegah duplikasi transaksi dari input webhook.
 
 ## Flow Workflow
 
 ### 1. Create Invoice / Payin
 
-Membuat invoice pembayaran baru dari webhook GET, mengambil mapping channel dari PostgreSQL, membuat signature HMAC, mengirim request ke XenithPay, lalu mengirim email invoice ke customer.
+Flow ini membuat invoice pembayaran baru, mengambil variabel workflow dari tabel `variables`, mengambil mapping channel dari `payment_channels`, membuat signature HMAC, mengirim request ke XenithPay, lalu mengirim email invoice ke customer.
 
 Alur node:
 
 ```text
 Webhook: Create Invoice
-> Globals: Get Payin Constants
+> Postgres: Get Payin Variables
+> Aggregate: Payin Variables
+> Code: Map Payin Variables
+> Postgres: Check Existing Invoice
+> Check: Invoice Reference Available?
 > Postgres: Get Payment Channel
 > Code: Build Xenith Payin Requests
 > Crypto: Create Xenith Payin Signature
 > Crypto: Generate Payin Idempotency Key
 > HTTP: Create Xenith Payin
 > Email: Send Invoice Payment Options
+> Postgres: Insert Invoice
 ```
+
+Output false dari `Check: Invoice Reference Available?` diarahkan ke `Code: Build Invoice Duplicate Response`.
+
+Penjelasan node:
+
+| Node | Fungsi |
+| --- | --- |
+| `Webhook: Create Invoice` | Menerima request GET untuk membuat invoice payin. |
+| `Postgres: Get Payin Variables` | Mengambil `xenithpayEndpoint`, `n8nURL`, dan `homepageURL` dari tabel `variables`. |
+| `Aggregate: Payin Variables` | Menggabungkan row variable dari PostgreSQL agar bisa dipetakan dalam satu item. |
+| `Code: Map Payin Variables` | Mengubah hasil query variable menjadi object key-value yang mudah dipakai node berikutnya. |
+| `Postgres: Check Existing Invoice` | Mengecek apakah `referenceCode` sudah pernah dibuat di tabel `invoices`. |
+| `Check: Invoice Reference Available?` | Mengarahkan flow ke proses create invoice jika reference masih kosong, atau ke response duplicate jika sudah ada. |
+| `Code: Build Invoice Duplicate Response` | Membuat response `REFERENCE_ALREADY_EXISTS` untuk false branch. |
+| `Postgres: Get Payment Channel` | Mengambil mapping `method` dan `channel` dari tabel `payment_channels`. |
+| `Code: Build Xenith Payin Requests` | Menyiapkan body request, callback URL, redirect URL, URI signature, dan payload HMAC untuk XenithPay. |
+| `Crypto: Create Xenith Payin Signature` | Membuat signature HMAC request payin memakai credential `Xenith-Secret-Key`. |
+| `Crypto: Generate Payin Idempotency Key` | Membuat idempotency key agar request payin aman dari retry ganda. |
+| `HTTP: Create Xenith Payin` | Mengirim request create payin ke endpoint XenithPay sesuai `xenithpayEndpoint`. |
+| `Email: Send Invoice Payment Options` | Mengirim instruksi pembayaran invoice ke email customer. |
+| `Postgres: Insert Invoice` | Menyimpan response create payin ke tabel `invoices`. |
 
 Query parameter:
 
@@ -180,11 +229,15 @@ Contoh:
 GET https://<n8n-url>/webhook/create-invoice?customerName=John&email=example@customer.com&initiated_amount=50000&paymentChannel=BRI.VA&phone_number=08123456789&referenceCode=REF-001&description=Pembayaran+Produk
 ```
 
-`/webhook-test/` dan `/webhook/` di URL atas hanya mengubah mode trigger n8n. Environment XenithPay untuk request payin tetap mengikuti nilai `xenithpayEndpoint`.
+Catatan:
+
+- Callback payin dibentuk dari `n8nURL + /webhook/xenith-payin`.
+- Redirect status pembayaran dibentuk dari `n8nURL + /webhook/payment?referenceCode=...`.
+- `/webhook-test/` dan `/webhook/` hanya mengubah mode trigger n8n, bukan environment XenithPay.
 
 ### 2. Simulate Payin
 
-Flow ini hanya untuk sandbox. Gunakan untuk mensimulasikan hasil pembayaran setelah invoice dibuat.
+Flow ini hanya untuk sandbox. Gunakan setelah invoice dibuat untuk mensimulasikan hasil pembayaran.
 
 Alur node:
 
@@ -194,6 +247,15 @@ Webhook: Simulate Payin
 > Crypto: Create Simulate Payin Signature
 > HTTP: Simulate Xenith Payin Transaction
 ```
+
+Penjelasan node:
+
+| Node | Fungsi |
+| --- | --- |
+| `Webhook: Simulate Payin` | Menerima request GET untuk menjalankan simulator pembayaran payin sandbox. |
+| `Code: Build Simulate Payin Payload` | Menyiapkan body simulator, URI signature, dan payload HMAC berdasarkan `payin_id` dan `transaction_status`. |
+| `Crypto: Create Simulate Payin Signature` | Membuat signature HMAC simulator memakai credential `Xenith-Secret-Key`. |
+| `HTTP: Simulate Xenith Payin Transaction` | Mengirim request ke endpoint simulator sandbox XenithPay. |
 
 Query parameter:
 
@@ -208,29 +270,39 @@ Contoh:
 GET https://<n8n-url>/webhook/simulate-payin?payin_id=txn_abc123&transaction_status=SUCCESS
 ```
 
-Endpoint simulator memakai URL sandbox hardcoded:
+Catatan:
 
-```text
-https://openapi.sandbox.xenithpay.com/v1/simulator/transaction
-```
-
-Flow ini hanya ada di XenithPay sandbox. Pergantian `/webhook-test/` ke `/webhook/` hanya mengubah cara n8n menerima trigger, bukan mengubah simulator menjadi production.
-
-Nonaktifkan atau hapus flow simulator saat workflow dipakai untuk production.
+- Endpoint simulator hardcoded ke `https://openapi.sandbox.xenithpay.com/v1/simulator/transaction`.
+- Flow ini tidak dipakai di XenithPay production.
 
 ### 3. Callback Payin
 
-Menerima callback XenithPay untuk transaksi payin, memvalidasi signature, lalu mengirim email status pembayaran.
+Flow ini menerima callback XenithPay untuk transaksi payin, memvalidasi signature, mengupdate data invoice di database, lalu mengirim email status pembayaran.
 
 Alur node:
 
 ```text
 Webhook: Xenith Payin Callback
-> Code: Build Signature Validation Payload
-> Crypto: Create Expected Xenith Signature
-> Check: Xenith Signature Valid?
+> Code: Build Payin Signature Validation Payload
+> Crypto: Create Expected Xenith Payin Signature
+> Check: Xenith Payin Signature Valid?
+> Postgres: Update Invoice From Callback
 > Email: Send Payin Status Notification
 ```
+
+Output false dari `Check: Xenith Payin Signature Valid?` diarahkan ke `Code: Build Invalid Payin Signature Response`.
+
+Penjelasan node:
+
+| Node | Fungsi |
+| --- | --- |
+| `Webhook: Xenith Payin Callback` | Menerima callback status payin dari XenithPay. |
+| `Code: Build Payin Signature Validation Payload` | Menyiapkan payload validasi signature callback sesuai body yang diterima. |
+| `Crypto: Create Expected Xenith Payin Signature` | Membuat expected signature memakai credential `xenith-web-signature-secret`. |
+| `Check: Xenith Payin Signature Valid?` | Membandingkan signature dari header XenithPay dengan expected signature. |
+| `Code: Build Invalid Payin Signature Response` | Membuat response error untuk callback payin yang signature-nya tidak valid. |
+| `Postgres: Update Invoice From Callback` | Mengupdate status dan detail invoice di tabel `invoices`. |
+| `Email: Send Payin Status Notification` | Mengirim email notifikasi status payin setelah database berhasil diupdate. |
 
 Webhook path:
 
@@ -239,31 +311,86 @@ Webhook path:
 | Test | `https://<n8n-url>/webhook-test/xenith-payin` |
 | Production | `https://<n8n-url>/webhook/xenith-payin` |
 
-Untuk callback XenithPay, gunakan URL production n8n `/webhook/xenith-payin`, bahkan saat request API masih mengarah ke XenithPay sandbox.
+Untuk callback XenithPay, selalu gunakan URL production n8n `/webhook/xenith-payin`.
 
-Status email yang didukung: `SUCCESS`, `FAILED`, dan `EXPIRED`.
+### 4. Payment Status Page
 
-### 4. Create Payout
+Flow ini menampilkan halaman status pembayaran yang dipakai sebagai redirect setelah customer menyelesaikan flow payin.
 
-Membuat payout/disbursement ke rekening bank atau e-wallet. Mapping channel payout diambil dari tabel `payout_channels`.
+Alur node:
+
+```text
+Webhook: Payment Status Page
+> Wait: Delay Payment Status Lookup
+> Postgres: Get Payment Page Variable
+> Postgres: Get Invoice For Payment Page
+> Postgres: Get Payment Channel For Page
+> Respond: Payment Status Page
+```
+
+Penjelasan node:
+
+| Node | Fungsi |
+| --- | --- |
+| `Webhook: Payment Status Page` | Menerima request halaman status pembayaran berdasarkan `referenceCode`. |
+| `Wait: Delay Payment Status Lookup` | Memberi jeda singkat agar data callback sempat masuk sebelum halaman membaca status invoice. |
+| `Postgres: Get Payment Page Variable` | Mengambil `homepageURL` dari tabel `variables` untuk tombol kembali ke beranda. |
+| `Postgres: Get Invoice For Payment Page` | Mengambil data invoice dari tabel `invoices` berdasarkan `referenceCode`. |
+| `Postgres: Get Payment Channel For Page` | Mengambil nama channel dari `payment_channels` untuk ditampilkan di halaman status. |
+| `Respond: Payment Status Page` | Menghasilkan response HTML halaman status pembayaran. |
+
+Catatan:
+
+- Base URL halaman ini dibentuk dari `n8nURL`.
+- Tombol `Kembali ke Beranda` memakai nilai `homepageURL` dari tabel `variables`.
+
+### 5. Create Payout
+
+Flow ini membuat payout/disbursement ke rekening bank atau e-wallet. Variabel workflow diambil dari tabel `variables`, lalu mapping channel diambil dari `payout_channels`.
 
 Alur node:
 
 ```text
 Webhook: Create Payout
-> Globals: Get Payout Constants
+> Postgres: Get Payout Variables
+> Aggregate: Payout Variables
+> Code: Map Payout Variables
+> Postgres: Check Existing Payout
+> Check: Payout Reference Available?
 > Postgres: Get Payout Channel
 > Code: Build Xenith Payout Payload
 > Crypto: Create Xenith Payout Signature
 > Crypto: Generate Payout Idempotency Key
 > HTTP: Create Xenith Payout
+> Postgres: Insert Payout
 ```
+
+Output false dari `Check: Payout Reference Available?` diarahkan ke `Code: Build Payout Duplicate Response`.
+
+Penjelasan node:
+
+| Node | Fungsi |
+| --- | --- |
+| `Webhook: Create Payout` | Menerima request GET untuk membuat payout/disbursement. |
+| `Postgres: Get Payout Variables` | Mengambil `xenithpayEndpoint` dan `n8nURL` dari tabel `variables`. |
+| `Aggregate: Payout Variables` | Menggabungkan row variable dari PostgreSQL agar bisa dipetakan dalam satu item. |
+| `Code: Map Payout Variables` | Mengubah hasil query variable menjadi object key-value untuk node payout berikutnya. |
+| `Postgres: Check Existing Payout` | Mengecek apakah `referenceCode` sudah pernah dibuat di tabel `payouts`. |
+| `Check: Payout Reference Available?` | Mengarahkan flow ke proses create payout jika reference masih kosong, atau ke response duplicate jika sudah ada. |
+| `Code: Build Payout Duplicate Response` | Membuat response `REFERENCE_ALREADY_EXISTS` untuk false branch. |
+| `Postgres: Get Payout Channel` | Mengambil mapping `method` dan `channel` dari tabel `payout_channels`. |
+| `Code: Build Xenith Payout Payload` | Menyiapkan body request, callback URL, URI signature, dan payload HMAC untuk XenithPay. |
+| `Crypto: Create Xenith Payout Signature` | Membuat signature HMAC request payout memakai credential `Xenith-Secret-Key`. |
+| `Crypto: Generate Payout Idempotency Key` | Membuat idempotency key agar request payout aman dari retry ganda. |
+| `HTTP: Create Xenith Payout` | Mengirim request create payout ke endpoint XenithPay sesuai `xenithpayEndpoint`. |
+| `Postgres: Insert Payout` | Menyimpan response create payout ke tabel `payouts`. |
 
 Query parameter:
 
 | Parameter | Keterangan |
 | --- | --- |
 | `amount` | Nominal payout dalam IDR. |
+| `referenceCode` | Kode referensi unik payout. |
 | `payoutChannel` | Kode channel payout, misalnya `CENAIDJA`, `BMRIIDJA`, `DANA`, atau `GOPAY`. |
 | `destinationPayoutAccount` | Nomor rekening atau akun tujuan. |
 | `destinationPayoutAccountName` | Nama pemilik rekening atau akun tujuan. |
@@ -272,16 +399,19 @@ Query parameter:
 Contoh:
 
 ```text
-GET https://<n8n-url>/webhook/create-payout?amount=100000&payoutChannel=CENAIDJA&destinationPayoutAccount=555563765328&destinationPayoutAccountName=Andi+Prasetyo&email=example@merchant.com
+GET https://<n8n-url>/webhook/create-payout?amount=100000&referenceCode=REF-TEST-1&payoutChannel=CENAIDJA&destinationPayoutAccount=555563765328&destinationPayoutAccountName=Andi+Prasetyo&email=example@merchant.com
 ```
 
-`/webhook-test/` dan `/webhook/` di URL atas hanya mengubah mode trigger n8n. Environment payout XenithPay tetap mengikuti nilai `xenithpayEndpoint`.
+Catatan:
 
-Catatan production: transaksi payout di XenithPay production baru dapat diproses setelah 1 jam.
+- Callback payout dibentuk dari `n8nURL + /webhook/xenith-payout`.
+- `referenceCode` dipakai untuk mengecek data payout yang sudah ada di tabel `payouts`.
+- Contoh `CENAIDJA`, `Andi Prasetyo`, dan `555563765328` mengikuti test data sandbox di dokumentasi XenithPay [Simulate Pay Out](https://docs.xenithpay.com/reference/simulate-pay-out). Gunakan data tersebut saat testing sandbox supaya callback payout bisa berjalan.
+- Payout production XenithPay baru dapat diproses setelah 1 jam.
 
-### 5. Callback Payout
+### 6. Callback Payout
 
-Menerima callback XenithPay untuk payout, memvalidasi signature, mengecek status `SUCCESS`, lalu mengirim email notifikasi payout berhasil.
+Flow ini menerima callback XenithPay untuk payout, memvalidasi signature dan status `SUCCESS`, lalu mengupdate data payout di database sebelum mengirim email notifikasi payout berhasil.
 
 Alur node:
 
@@ -290,8 +420,23 @@ Webhook: Xenith Payout Callback
 > Code: Build Payout Signature Validation Payload
 > Crypto: Create Expected Xenith Payout Signature
 > Check: Xenith Payout Signature Valid?
+> Postgres: Update Payout From Callback
 > Email: Send Payout Success
 ```
+
+Output false dari `Check: Xenith Payout Signature Valid?` diarahkan ke `Code: Build Invalid Payout Signature Response`.
+
+Penjelasan node:
+
+| Node | Fungsi |
+| --- | --- |
+| `Webhook: Xenith Payout Callback` | Menerima callback status payout dari XenithPay. |
+| `Code: Build Payout Signature Validation Payload` | Menyiapkan payload validasi signature callback sesuai body yang diterima. |
+| `Crypto: Create Expected Xenith Payout Signature` | Membuat expected signature memakai credential `xenith-web-signature-secret`. |
+| `Check: Xenith Payout Signature Valid?` | Memastikan signature callback valid dan status payout sesuai kondisi success template. |
+| `Code: Build Invalid Payout Signature Response` | Membuat response error untuk callback payout yang signature-nya tidak valid atau statusnya bukan `SUCCESS`. |
+| `Postgres: Update Payout From Callback` | Mengupdate status dan detail payout di tabel `payouts`. |
+| `Email: Send Payout Success` | Mengirim email notifikasi payout berhasil setelah database berhasil diupdate. |
 
 Webhook path:
 
@@ -300,7 +445,7 @@ Webhook path:
 | Test | `https://<n8n-url>/webhook-test/xenith-payout` |
 | Production | `https://<n8n-url>/webhook/xenith-payout` |
 
-Untuk callback XenithPay, gunakan URL production n8n `/webhook/xenith-payout`, bahkan saat request API masih mengarah ke XenithPay sandbox.
+Untuk callback XenithPay, selalu gunakan URL production n8n `/webhook/xenith-payout`.
 
 ## Signature
 
@@ -315,26 +460,17 @@ BODY_JSON
 
 Hasil signature dikirim dalam format Base64. Secret untuk request API memakai credential `Xenith-Secret-Key`, sedangkan validasi callback memakai `xenith-web-signature-secret`.
 
-## Sandbox dan Production
+## Saat Pindah ke Production
 
-| Komponen | Sandbox | Production |
-| --- | --- | --- |
-| Base URL | `https://openapi.sandbox.xenithpay.com` | `https://openapi.xenithpay.com` |
-| Payin | `/v1/payins` | `/v1/payins` |
-| Payout | `/v1/payouts` | `/v1/payouts` |
-| Simulator | `/v1/simulator/transaction` | Tidak tersedia |
-
-Saat pindah ke production:
-
-1. Ubah `xenithpayEndpoint` di Global Variables ke `https://openapi.xenithpay.com`.
-2. Pastikan `callbackUrlPayin` dan `callbackUrlPayout` memakai domain production yang aktif.
-3. Nonaktifkan flow `Simulate Payin`.
-4. Pastikan credential API key, secret request, dan secret callback sudah memakai credential production.
+1. Ubah row `xenithpayEndpoint` di tabel `variables` menjadi `https://openapi.xenithpay.com`.
+2. Pastikan `n8nURL` sudah memakai domain production publik yang benar.
+3. Pastikan `homepageURL` juga sudah mengarah ke domain production front-end Anda.
+4. Nonaktifkan flow `Simulate Payin`.
+5. Pastikan credential API key, secret request, dan secret callback sudah memakai credential production.
 
 ## Catatan Implementasi
 
 - Jangan menyimpan API key atau secret di repository.
-- `customerReference` pada template ini memakai email agar notifikasi bisa langsung dikirim. Untuk production, ganti sesuai identifier bisnis Anda, misalnya customer ID atau order ID.
-- `redirectUrl` masih contoh dan perlu disesuaikan dengan web front-end Anda.
+- `customerReference` pada template ini memakai email sebagai contoh. Untuk production, ganti sesuai identifier bisnis Anda.
 - Public URL harus stabil agar callback dari XenithPay tidak gagal masuk ke n8n.
-- Jika channel baru ditambahkan oleh XenithPay, tambahkan row baru ke `xenithpay_channels_setup.sql`, lalu jalankan ulang file tersebut.
+- Jika XenithPay menambah channel baru, tambahkan row baru ke `xenithpay_database_setup.sql`, lalu jalankan ulang file tersebut.

@@ -1,8 +1,60 @@
--- XenithPay channel setup for the n8n workflow.
+-- XenithPay database setup for the n8n workflow.
 -- Run this file once during setup, or rerun it safely when you need to refresh
--- the bundled channel seed data.
+-- the bundled schema and channel seed data.
 
 BEGIN;
+
+CREATE TABLE IF NOT EXISTS public.variables (
+  key text PRIMARY KEY,
+  value text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.invoices (
+  id text PRIMARY KEY,
+  initiated_amount numeric(20,2),
+  payment_amount numeric(20,2),
+  fee_amount numeric(20,2),
+  currency text,
+  payment_method text,
+  payment_channel text,
+  payment_code text,
+  payment_code_type text,
+  reference_code text UNIQUE,
+  customer_reference text,
+  customer_name text,
+  status text,
+  created_time timestamptz,
+  updated_time timestamptz,
+  expiration_time timestamptz,
+  description text,
+  payer_account_name text,
+  payer_account_number text,
+  payer_payment_channel text,
+  metadata jsonb,
+  error_code text,
+  error_message text
+);
+
+CREATE TABLE IF NOT EXISTS public.payouts (
+  id text PRIMARY KEY,
+  initiated_amount numeric(20,2),
+  sent_amount numeric(20,2),
+  fee_amount numeric(20,2),
+  currency text,
+  destination_payout_channel text,
+  destination_payout_method text,
+  destination_payout_account text,
+  destination_payout_account_name text,
+  reference_code text UNIQUE,
+  customer_reference text,
+  status text,
+  created_time timestamptz,
+  updated_time timestamptz,
+  description text,
+  payout_type text,
+  error_code text,
+  error_message text
+);
 
 CREATE TABLE IF NOT EXISTS public.payment_channels (
   method VARCHAR(64) NOT NULL,
@@ -76,5 +128,11 @@ INSERT INTO public.payout_channels (method, channel, name) VALUES
 ON CONFLICT (channel) DO UPDATE SET
   method = EXCLUDED.method,
   name = EXCLUDED.name;
+
+INSERT INTO public.variables (key, value) VALUES
+  ('xenithpayEndpoint', '<xenithpay-api>'),
+  ('n8nURL', '<your-n8n-url>'),
+  ('homepageURL', '<your-homepage-url>')
+ON CONFLICT (key) DO NOTHING;
 
 COMMIT;
