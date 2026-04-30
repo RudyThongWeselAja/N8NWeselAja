@@ -102,7 +102,7 @@ Nama credential di atas mengikuti nama yang sudah dipakai di workflow. Kalau nam
 
 ## Tabel `variables`
 
-Workflow tidak lagi memakai community node `n8n-nodes-globals`. Semua variabel runtime sekarang dibaca dari tabel PostgreSQL `public.variables`.
+Semua variabel runtime workflow dibaca dari tabel PostgreSQL `public.variables`.
 
 Nilai awal dari file SQL sengaja memakai placeholder:
 
