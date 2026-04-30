@@ -32,47 +32,19 @@ Lalu mengisi seed channel dan starter row untuk konfigurasi workflow.
 
 ## Pembuatan Database PostgreSQL
 
-Workflow ini butuh satu database PostgreSQL yang bisa diakses dari n8n. Contoh di bawah memakai nama database `xenithpay` dan user `xenithpay_user`; silakan ganti sesuai standar deployment Anda.
+Workflow ini butuh satu database PostgreSQL yang bisa diakses dari n8n. Cara membuat databasenya bebas: local install, PostgreSQL cloud, managed database, atau database existing tim. Yang penting developer sudah punya koneksi database seperti host, port, database, user, password, dan SSL jika provider mewajibkan.
 
-### 1. Buat database dan user
-
-Jalankan perintah ini dari user PostgreSQL yang punya akses membuat database, misalnya `postgres`:
+Setelah database tersedia, jalankan file `xenithpay_database_setup.sql` sebagai setup awal template XenithPay:
 
 ```bash
-psql -h <host> -U postgres
+psql -h <host> -p 5432 -U <user> -d <database> -f xenithpay_database_setup.sql
 ```
 
-Lalu jalankan SQL berikut:
+Jika platform database sudah menyediakan query editor atau SQL editor, tidak perlu memakai `psql`. Buka file `xenithpay_database_setup.sql`, copy seluruh isinya, lalu paste dan jalankan di query editor database PostgreSQL yang dipakai untuk template ini.
 
-```sql
-CREATE USER xenithpay_user WITH PASSWORD '<strong-password>';
-CREATE DATABASE xenithpay OWNER xenithpay_user;
-```
+File SQL ini membuat tabel `variables`, `invoices`, `payouts`, `payment_channels`, dan `payout_channels`, lalu mengisi seed channel dan starter variable. File ini aman dijalankan ulang karena memakai `CREATE TABLE IF NOT EXISTS`, `CREATE UNIQUE INDEX IF NOT EXISTS`, dan `ON CONFLICT` untuk seed bawaan.
 
-Jika database sudah dibuat oleh provider hosting, cukup pastikan Anda punya nilai koneksi berikut:
-
-| Field | Contoh |
-| --- | --- |
-| Host | `db.example.com` |
-| Port | `5432` |
-| Database | `xenithpay` |
-| User | `xenithpay_user` |
-| Password | password database |
-| Schema | `public` |
-
-### 2. Jalankan setup SQL
-
-Dari folder repo ini, jalankan file `xenithpay_database_setup.sql` ke database yang sudah dibuat:
-
-```bash
-psql -h <host> -p 5432 -U xenithpay_user -d xenithpay -f xenithpay_database_setup.sql
-```
-
-File ini aman dijalankan ulang karena memakai `CREATE TABLE IF NOT EXISTS`, `CREATE UNIQUE INDEX IF NOT EXISTS`, dan `ON CONFLICT` untuk seed channel.
-
-### 3. Isi variable environment
-
-Setelah tabel dibuat, ganti placeholder di tabel `public.variables`:
+Setelah setup SQL selesai, ganti placeholder di tabel `public.variables`:
 
 ```sql
 UPDATE public.variables
@@ -90,46 +62,7 @@ Untuk production, ubah `xenithpayEndpoint` menjadi:
 https://openapi.xenithpay.com
 ```
 
-### 4. Cek hasil setup
-
-Gunakan query ini untuk memastikan tabel, variable, dan seed channel sudah masuk:
-
-```sql
-SELECT table_name
-FROM information_schema.tables
-WHERE table_schema = 'public'
-  AND table_name IN (
-    'variables',
-    'invoices',
-    'payouts',
-    'payment_channels',
-    'payout_channels'
-  )
-ORDER BY table_name;
-
-SELECT 'payment_channels' AS table_name, COUNT(*) AS total_rows
-FROM public.payment_channels
-UNION ALL
-SELECT 'payout_channels' AS table_name, COUNT(*) AS total_rows
-FROM public.payout_channels;
-
-SELECT key, value
-FROM public.variables
-ORDER BY key;
-```
-
-Hasil yang diharapkan:
-
-| Data | Minimal hasil |
-| --- | --- |
-| Tabel | 5 tabel muncul: `variables`, `invoices`, `payouts`, `payment_channels`, `payout_channels`. |
-| `payment_channels` | 14 row seed channel payin. |
-| `payout_channels` | 31 row seed channel payout. |
-| `variables` | 3 key: `homepageURL`, `n8nURL`, `xenithpayEndpoint`. |
-
-### 5. Hubungkan ke credential n8n
-
-Buat credential PostgreSQL di n8n dengan nama `database`, lalu isi sesuai koneksi database:
+Buat credential PostgreSQL di n8n dengan nama `database`, lalu isi sesuai koneksi database yang Anda pakai:
 
 | Field n8n | Isi |
 | --- | --- |
@@ -140,18 +73,9 @@ Buat credential PostgreSQL di n8n dengan nama `database`, lalu isi sesuai koneks
 | Port | Biasanya `5432`. |
 | SSL | Aktifkan kalau provider database mewajibkan SSL. |
 
-Kalau muncul error `permission denied for schema public`, pastikan database dimiliki oleh user yang dipakai n8n atau jalankan grant berikut dari user admin:
-
-```sql
-GRANT USAGE, CREATE ON SCHEMA public TO xenithpay_user;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO xenithpay_user;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO xenithpay_user;
-```
-
 ## Setup Cepat
 
-1. Buat database PostgreSQL dengan panduan di bagian `Pembuatan Database PostgreSQL`.
+1. Pastikan sudah punya database PostgreSQL yang bisa diakses dari n8n.
 2. Jalankan setup SQL:
 
 ```bash
