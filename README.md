@@ -44,23 +44,19 @@ Jika platform database sudah menyediakan query editor atau SQL editor, tidak per
 
 File SQL ini membuat tabel `variables`, `invoices`, `payouts`, `payment_channels`, dan `payout_channels`, lalu mengisi seed channel dan starter variable. File ini aman dijalankan ulang karena memakai `CREATE TABLE IF NOT EXISTS`, `CREATE UNIQUE INDEX IF NOT EXISTS`, dan `ON CONFLICT` untuk seed bawaan.
 
-Setelah setup SQL selesai, ganti placeholder di tabel `public.variables`:
+Setelah setup SQL selesai, ganti placeholder di tabel `public.variables` dengan URL asli milik environment Anda. Jangan memakai contoh domain apa adanya.
 
 ```sql
 UPDATE public.variables
 SET value = CASE key
-  WHEN 'xenithpayEndpoint' THEN 'https://openapi.sandbox.xenithpay.com'
-  WHEN 'n8nURL' THEN 'https://n8n.example.com'
-  WHEN 'homepageURL' THEN 'https://www.example.com'
+  WHEN 'xenithpayEndpoint' THEN '<xenithpay-api>'
+  WHEN 'n8nURL' THEN '<your-n8n-url>'
+  WHEN 'homepageURL' THEN '<your-homepage-url>'
 END
 WHERE key IN ('xenithpayEndpoint', 'n8nURL', 'homepageURL');
 ```
 
-Untuk production, ubah `xenithpayEndpoint` menjadi:
-
-```text
-https://openapi.xenithpay.com
-```
+Untuk `xenithpayEndpoint`, gunakan `https://openapi.sandbox.xenithpay.com` saat testing sandbox dan `https://openapi.xenithpay.com` saat production. Untuk `n8nURL` dan `homepageURL`, isi dengan domain asli milik project Anda, tanpa trailing slash.
 
 Buat credential PostgreSQL di n8n dengan nama `database`, lalu isi sesuai koneksi database yang Anda pakai:
 
@@ -119,14 +115,14 @@ ON CONFLICT (key) DO UPDATE
 SET value = EXCLUDED.value;
 ```
 
-Setelah menjalankan `xenithpay_database_setup.sql`, ganti placeholder tersebut di database:
+Setelah menjalankan `xenithpay_database_setup.sql`, ganti placeholder tersebut di database dengan URL asli milik environment Anda:
 
 ```sql
 UPDATE public.variables
 SET value = CASE key
-  WHEN 'xenithpayEndpoint' THEN 'https://openapi.sandbox.xenithpay.com'
-  WHEN 'n8nURL' THEN 'https://n8n.example.com'
-  WHEN 'homepageURL' THEN 'https://www.example.com'
+  WHEN 'xenithpayEndpoint' THEN '<xenithpay-api>'
+  WHEN 'n8nURL' THEN '<your-n8n-url>'
+  WHEN 'homepageURL' THEN '<your-homepage-url>'
 END
 WHERE key IN ('xenithpayEndpoint', 'n8nURL', 'homepageURL');
 ```
