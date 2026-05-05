@@ -49,13 +49,27 @@ Buat *Credentials* berikut dengan nama **persis** seperti di bawah ini:
 
 ![Contoh Penamaan Credential](images/credential-example.png)
 
-| Nama Credential | Tipe | Kegunaan |
-|---|---|---|
-| `Xenith-Api-Key` | HTTP Header Auth | Header autentikasi API XenithPay |
-| `Xenith-Secret-Key` | Crypto HMAC | Memverifikasi signature Pay-In & Pay-Out |
-| `xenith-web-signature-secret` | Crypto HMAC | Memverifikasi validitas Callback dari XenithPay |
-| `database` | PostgreSQL | Menyambung ke database Anda |
-| `SMTP` | SMTP | Mengirim email notifikasi |
+1. **`Xenith-Api-Key`**
+   - **Tipe:** HTTP Header Auth
+   - **Kegunaan:** Header autentikasi API XenithPay
+
+2. **`Xenith-Secret-Key`**
+   - **Tipe:** Crypto HMAC
+   - **Kegunaan:** Memverifikasi signature Pay-In & Pay-Out
+
+3. **`xenith-web-signature-secret`**
+   - **Tipe:** Crypto HMAC
+   - **Kegunaan:** Memverifikasi validitas Callback dari XenithPay
+
+4. **`database`**
+   - **Tipe:** PostgreSQL
+   - **Kegunaan:** Menyambung ke database Anda
+   
+   ![Credential Database](images/credential-database.png)
+
+5. **`SMTP`**
+   - **Tipe:** SMTP
+   - **Kegunaan:** Mengirim email notifikasi
 
 ### 4. Import Workflow di n8n
 1. Buka n8n dan buat *Workflow* baru.
