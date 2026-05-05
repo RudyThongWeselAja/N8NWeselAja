@@ -49,24 +49,30 @@ Buat *Credentials* berikut dengan nama **persis** seperti di bawah ini:
 
 ![Contoh Penamaan Credential](images/credential-example.png)
 
-1. **`Xenith-Api-Key`**
-   - **Tipe:** HTTP Header Auth
-   - **Kegunaan:** Header autentikasi API XenithPay
-
-2. **`Xenith-Secret-Key`**
-   - **Tipe:** Crypto HMAC
-   - **Kegunaan:** Memverifikasi signature Pay-In & Pay-Out
-
-3. **`xenith-web-signature-secret`**
-   - **Tipe:** Crypto HMAC
-   - **Kegunaan:** Memverifikasi validitas Callback dari XenithPay
-
-4. **`database`**
+1. **`database`**
    - **Tipe:** PostgreSQL
    - **Kegunaan:** Menyambung ke database Anda
+   - **Yang harus diisi:**
+     - **Host:** Alamat host server database Anda (contoh: `localhost` atau IP/URL server)
+     - **Database:** Nama database Anda
+     - **User:** Username database Anda
+     - **Password:** Password database Anda
+     - **Port:** Port database (biasanya `5432` atau `6543` jika menggunakan Supabase)
    
    ![Credential Database 1](images/credential-database1.png)
    ![Credential Database 2](images/credential-database2.png)
+
+2. **`Xenith-Api-Key`**
+   - **Tipe:** HTTP Header Auth
+   - **Kegunaan:** Header autentikasi API XenithPay
+
+3. **`Xenith-Secret-Key`**
+   - **Tipe:** Crypto HMAC
+   - **Kegunaan:** Memverifikasi signature Pay-In & Pay-Out
+
+4. **`xenith-web-signature-secret`**
+   - **Tipe:** Crypto HMAC
+   - **Kegunaan:** Memverifikasi validitas Callback dari XenithPay
 
 5. **`SMTP`**
    - **Tipe:** SMTP
