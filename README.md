@@ -127,23 +127,99 @@ Script database akan secara otomatis membuat 5 tabel ini:
 Anda bisa memicu workflow dengan melakukan pemanggilan HTTP GET ke endpoint n8n berikut:
 
 ### 1. Pay-In (Menerima Pembayaran)
-* **Create Invoice**: `GET <n8nURL>/webhook/create-invoice`
-  *Membuat tagihan pembayaran, menyimpan ke database, dan mengirimkan email tagihan ke customer.*
-  > Parameter wajib: `customerName`, `email`, `initiated_amount`, `paymentChannel`, `phone_number`, `referenceCode`, `description`
 
-* **Simulate Pay-In (Sandbox Only)**: `GET <n8nURL>/webhook/simulate-payin`
-  *Mensimulasikan pembayaran berhasil/gagal (Hanya berfungsi di Sandbox).*
-  > Parameter wajib: `payin_id`, `transaction_status` (Isi dengan SUCCESS/FAILED/EXPIRED)
+#### Create Invoice
+`GET <n8nURL>/webhook/create-invoice`
 
-* **Callback Pay-In**: Endpoint `<n8nURL>/webhook/xenith-payin` (Otomatis dipanggil oleh XenithPay saat status pembayaran berubah).
-* **Payment Status Page**: Endpoint UI untuk menampilkan status tagihan kepada user.
+Membuat tagihan pembayaran baru, mengambil mapping channel dari PostgreSQL, membuat signature HMAC, mengirim request ke XenithPay, lalu mengirim email invoice ke customer.
+
+**Input GET (Query Parameters):**
+| Parameter | Keterangan |
+|---|---|
+| `customerName` | Nama customer |
+| `email` | Email invoice; pada template ini juga dipakai sebagai `customerReference` |
+| `initiated_amount` | Nominal pembayaran IDR |
+| `paymentChannel` | Kode channel dari `payment_channels.channel`, contoh `QRIS`, `BRI.VA`, `DANA` |
+| `phone_number` | Nomor telepon customer |
+| `referenceCode` | Kode referensi transaksi (harus unik) |
+| `description` | Deskripsi transaksi |
+
+**Contoh:**
+```
+GET /webhook/create-invoice?customerName=John&email=example@customer.com&initiated_amount=50000&paymentChannel=BRI.VA&phone_number=08123456789&referenceCode=REF-001&description=Pembayaran+Produk
+```
+
+> **Catatan:** Jika `referenceCode` sudah pernah dipakai, endpoint akan mengembalikan `REFERENCE_ALREADY_EXISTS`.
+
+---
+
+#### Simulate Pay-In (Sandbox Only)
+`GET <n8nURL>/webhook/simulate-payin`
+
+Mensimulasikan status pembayaran di sandbox. Gunakan setelah invoice dibuat.
+
+**Input GET (Query Parameters):**
+| Parameter | Keterangan |
+|---|---|
+| `payin_id` | Transaction ID dari response create invoice atau email invoice |
+| `transaction_status` | Status yang disimulasikan: `SUCCESS`, `FAILED`, atau `EXPIRED` |
+
+**Contoh:**
+```
+GET /webhook/simulate-payin?payin_id=txn_abc123&transaction_status=SUCCESS
+```
+
+> **Catatan:** Endpoint simulator hardcoded ke `https://openapi.sandbox.xenithpay.com/v1/simulator/transaction`. Nonaktifkan flow ini saat workflow dipakai untuk production.
+
+---
+
+#### Callback Pay-In
+Endpoint `<n8nURL>/webhook/xenith-payin` — Otomatis dipanggil oleh XenithPay saat status pembayaran berubah.
+
+> **Catatan:** XenithPay sandbox tetap mengirim callback ke `/webhook/xenith-payin` (production webhook), bukan ke `/webhook-test/xenith-payin`.
+
+---
+
+#### Payment Status Page
+Endpoint `<n8nURL>/webhook/payment?referenceCode=<referenceCode>` — Menampilkan halaman status pembayaran dari data invoice dan payment channel, lalu memberi tombol kembali ke homepage.
+
+> **Catatan:** Pastikan `homepageURL` di tabel `variables` sudah diganti dengan URL homepage/front-end asli.
+
+---
 
 ### 2. Pay-Out (Mencairkan Dana)
-* **Create Payout**: `GET <n8nURL>/webhook/create-payout`
-  *Membuat permintaan pencairan dana ke rekening bank atau e-wallet tujuan.*
-  > Parameter wajib: `amount`, `referenceCode`, `payoutChannel`, `destinationPayoutAccount`, `destinationPayoutAccountName`, `email`
 
-* **Callback Pay-Out**: Endpoint `<n8nURL>/webhook/xenith-payout` (Otomatis dipanggil oleh XenithPay saat dana berhasil dicairkan).
+#### Create Payout
+`GET <n8nURL>/webhook/create-payout`
+
+Membuat permintaan pencairan dana ke rekening bank atau e-wallet tujuan.
+
+**Input GET (Query Parameters):**
+| Parameter | Keterangan |
+|---|---|
+| `amount` | Nominal payout IDR |
+| `referenceCode` | Kode referensi unik payout |
+| `payoutChannel` | Kode channel dari `payout_channels.channel`, contoh `CENAIDJA`, `BMRIIDJA`, `DANA`, `GOPAY` |
+| `destinationPayoutAccount` | Nomor rekening atau akun tujuan |
+| `destinationPayoutAccountName` | Nama pemilik rekening atau akun tujuan |
+| `email` | Email notifikasi payout |
+
+**Contoh:**
+```
+GET /webhook/create-payout?amount=100000&referenceCode=REF-TEST-1&payoutChannel=CENAIDJA&destinationPayoutAccount=555563765328&destinationPayoutAccountName=Andi+Prasetyo&email=example@merchant.com
+```
+
+> **Catatan:**
+> - Jika `referenceCode` sudah pernah dipakai, endpoint akan mengembalikan `REFERENCE_ALREADY_EXISTS`.
+> - Contoh sandbox `CENAIDJA`, `Andi Prasetyo`, dan `555563765328` merujuk dokumentasi XenithPay Simulate Pay Out agar callback payout sandbox bisa berjalan: `https://docs.xenithpay.com/reference/simulate-pay-out`.
+> - Payout production XenithPay baru dapat diproses setelah 1 jam.
+
+---
+
+#### Callback Pay-Out
+Endpoint `<n8nURL>/webhook/xenith-payout` — Otomatis dipanggil oleh XenithPay saat dana berhasil dicairkan.
+
+> **Catatan:** XenithPay sandbox tetap mengirim callback ke `/webhook/xenith-payout` (production webhook), bukan ke `/webhook-test/xenith-payout`.
 
 ---
 
