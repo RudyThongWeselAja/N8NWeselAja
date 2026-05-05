@@ -101,7 +101,7 @@ Buat *Credentials* berikut dengan nama **persis** seperti di bawah ini:
    ![Credential SMTP 2](images/credential-smtp2.png)
 
 ### 4. Import Workflow di n8n
-1. Buka n8n dan buat *Workflow* baru.
+1. Klik tombol **+** di pojok kiri atas, lalu pilih **Workflow** untuk membuat workflow baru.
 2. Import file `Xenithpay Template.json`.
 3. n8n akan **otomatis menghubungkan** semua *Credentials* yang sudah dibuat di langkah sebelumnya ke setiap node yang membutuhkannya.
 
