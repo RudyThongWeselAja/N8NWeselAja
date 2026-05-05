@@ -82,6 +82,10 @@ Buat *Credentials* berikut dengan nama **persis** seperti di bawah ini:
 4. **`xenith-web-signature-secret`**
    - **Tipe:** Crypto HMAC
    - **Kegunaan:** Memverifikasi validitas Callback dari XenithPay
+   - **Yang harus diisi:**
+     - **Secret:** Masukkan Webhook Signature Secret dari pengaturan webhook XenithPay Anda
+   
+   ![Credential Web Signature Secret](images/credential-xenith-web-signature-secret.png)
 
 5. **`SMTP`**
    - **Tipe:** SMTP
