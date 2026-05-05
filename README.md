@@ -104,17 +104,35 @@ Buat *Credentials* berikut dengan nama **persis** seperti di bawah ini:
 1. Klik tombol **+** di pojok kiri atas, lalu pilih **Workflow** untuk membuat workflow baru.
 2. Import file `Xenithpay Template.json`.
 3. Idealnya, n8n akan otomatis menghubungkan semua *Credentials* yang dibuat sebelumnya ke setiap node.
-4. **⚠️ PENTING: Jika credential tidak otomatis terhubung**, Anda wajib memilihnya secara manual dengan mengklik masing-masing node berikut:
-   - **database** (PostgreSQL):
-     - Semua node yang berawalan "Postgres: ..." (Total ada 13 node).
-   - **Xenith-Api-Key** (Header Auth):
-     - *HTTP: Create Xenith Payout*, *HTTP: Simulate Xenith Payin Transaction*, *HTTP: Create Xenith Payin*.
-   - **Xenith-Secret-Key** (Crypto):
-     - *Crypto: Create Xenith Payout Signature*, *Crypto: Create Simulate Payin Signature*, *Crypto: Create Xenith Payin Signature*.
-   - **xenith-web-signature-secret** (Crypto):
-     - *Crypto: Create Expected Xenith Payout Signature*, *Crypto: Create Expected Xenith Payin Signature*.
-   - **SMTP** (Email Send):
-     - *Email: Send Payout Success*, *Email: Send Payin Status Notification*, *Email: Send Invoice Payment Options*.
+4. **⚠️ PENTING: Jika credential tidak otomatis terhubung**, Anda wajib memilihnya secara manual. Agar lebih mudah, panduan di bawah ini dikelompokkan berdasarkan area flow di dalam n8n:
+
+   **A. Flow: Create Invoice / Payin**
+   - **database** (PostgreSQL): *Postgres: Get Payin Variables*, *Postgres: Get Payment Channel*, *Postgres: Check Existing Invoice*, *Postgres: Insert Invoice*
+   - **Xenith-Api-Key** (Header Auth): *HTTP: Create Xenith Payin*
+   - **Xenith-Secret-Key** (Crypto): *Crypto: Create Xenith Payin Signature*
+   - **SMTP** (Email): *Email: Send Invoice Payment Options*
+
+   **B. Flow: Simulate Payin**
+   - **Xenith-Api-Key** (Header Auth): *HTTP: Simulate Xenith Payin Transaction*
+   - **Xenith-Secret-Key** (Crypto): *Crypto: Create Simulate Payin Signature*
+
+   **C. Flow: Callback Payin**
+   - **database** (PostgreSQL): *Postgres: Update Invoice From Callback*
+   - **xenith-web-signature-secret** (Crypto): *Crypto: Create Expected Xenith Payin Signature*
+   - **SMTP** (Email): *Email: Send Payin Status Notification*
+
+   **D. Flow: Payment Status Page**
+   - **database** (PostgreSQL): *Postgres: Get Payment Page Variable*, *Postgres: Get Payment Channel For Page*, *Postgres: Get Invoice For Payment Page*
+
+   **E. Flow: Create Payout**
+   - **database** (PostgreSQL): *Postgres: Get Payout Variables*, *Postgres: Check Existing Payout*, *Postgres: Get Payout Channel*, *Postgres: Insert Payout*
+   - **Xenith-Api-Key** (Header Auth): *HTTP: Create Xenith Payout*
+   - **Xenith-Secret-Key** (Crypto): *Crypto: Create Xenith Payout Signature*
+
+   **F. Flow: Callback Payout**
+   - **database** (PostgreSQL): *Postgres: Update Payout From Callback*
+   - **xenith-web-signature-secret** (Crypto): *Crypto: Create Expected Xenith Payout Signature*
+   - **SMTP** (Email): *Email: Send Payout Success*
 
 ### 5. Publish Workflow
 Aktifkan workflow dengan mengklik tombol **Publish** di pojok kanan atas n8n.
