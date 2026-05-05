@@ -90,6 +90,15 @@ Buat *Credentials* berikut dengan nama **persis** seperti di bawah ini:
 5. **`SMTP`**
    - **Tipe:** SMTP
    - **Kegunaan:** Mengirim email notifikasi
+   - **Yang harus diisi:**
+     - **User:** Alamat email pengirim
+     - **Password:** Password email atau *App Password* (jika menggunakan Gmail/layanan serupa)
+     - **Host:** Alamat host server SMTP (contoh: `smtp.gmail.com`)
+     - **Port:** Port SMTP (biasanya `465` untuk SSL atau `587` untuk TLS)
+     - **SSL/TLS:** Aktifkan (centang) jika provider email mewajibkan enkripsi
+   
+   ![Credential SMTP 1](images/credential-smtp1.png)
+   ![Credential SMTP 2](images/credential-smtp2.png)
 
 ### 4. Import Workflow di n8n
 1. Buka n8n dan buat *Workflow* baru.
