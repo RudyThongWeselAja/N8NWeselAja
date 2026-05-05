@@ -39,7 +39,7 @@ WHERE key IN ('xenithpayEndpoint', 'n8nURL', 'homepageURL');
 ```
 
 ### 3. Buat Credentials di n8n
-**Sebelum** meng-import workflow, buat semua *Credentials* terlebih dahulu. Buka tab **Credentials** di halaman *Personal*, lalu klik tombol **Create credential** untuk membuat masing-masing credential.
+**Sebelum** meng-import workflow, buat semua *Credentials* terlebih dahulu. Pada n8n yang baru, klik tombol **+** di pojok kiri atas, lalu pilih **Credential** untuk membuat masing-masing credential.
 
 ![Contoh Halaman Credentials n8n](images/credentials-page.png)
 
