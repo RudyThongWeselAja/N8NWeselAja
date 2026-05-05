@@ -103,7 +103,18 @@ Buat *Credentials* berikut dengan nama **persis** seperti di bawah ini:
 ### 4. Import Workflow di n8n
 1. Klik tombol **+** di pojok kiri atas, lalu pilih **Workflow** untuk membuat workflow baru.
 2. Import file `Xenithpay Template.json`.
-3. n8n akan **otomatis menghubungkan** semua *Credentials* yang sudah dibuat di langkah sebelumnya ke setiap node yang membutuhkannya.
+3. Idealnya, n8n akan otomatis menghubungkan semua *Credentials* yang dibuat sebelumnya ke setiap node.
+4. **⚠️ PENTING: Jika credential tidak otomatis terhubung**, Anda wajib memilihnya secara manual dengan mengklik masing-masing node berikut:
+   - **database** (PostgreSQL):
+     - Semua node yang berawalan "Postgres: ..." (Total ada 13 node).
+   - **Xenith-Api-Key** (Header Auth):
+     - *HTTP: Create Xenith Payout*, *HTTP: Simulate Xenith Payin Transaction*, *HTTP: Create Xenith Payin*.
+   - **Xenith-Secret-Key** (Crypto):
+     - *Crypto: Create Xenith Payout Signature*, *Crypto: Create Simulate Payin Signature*, *Crypto: Create Xenith Payin Signature*.
+   - **xenith-web-signature-secret** (Crypto):
+     - *Crypto: Create Expected Xenith Payout Signature*, *Crypto: Create Expected Xenith Payin Signature*.
+   - **SMTP** (Email Send):
+     - *Email: Send Payout Success*, *Email: Send Payin Status Notification*, *Email: Send Invoice Payment Options*.
 
 ### 5. Publish Workflow
 Aktifkan workflow dengan mengklik tombol **Publish** di pojok kanan atas n8n.
