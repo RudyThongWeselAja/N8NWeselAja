@@ -7,10 +7,10 @@ Template n8n ini menyediakan integrasi lengkap dengan **XenithPay** untuk mempro
 ## 📋 Prasyarat
 
 Sebelum memulai, pastikan Anda memiliki:
-1. **n8n**: Instance n8n yang aktif (Self-hosted atau Cloud).
+1. **n8n (Versi Terbaru)**: Pastikan Anda menggunakan n8n versi terbaru. Hal ini diwajibkan karena template ini menggunakan sistem *credential* terbaru dari n8n yang jauh lebih praktis. Anda cukup mengatur *Credentials* sekali saja tanpa perlu repot melakukan setup manual pada setiap *node*.
 2. **PostgreSQL**: Database untuk menyimpan riwayat transaksi, referensi channel, dan variabel environment workflow.
 3. **SMTP**: Konfigurasi email aktif untuk mengirim notifikasi dan invoice.
-4. **Akun XenithPay**: Kredensial API Key dan Secret (untuk Sandbox atau Production).
+4. **Akun XenithPay**: *Credential* API Key dan Secret (untuk Sandbox atau Production).
 5. **Public URL**: Domain publik untuk instance n8n Anda (bisa menggunakan `ngrok` untuk lokal) agar bisa menerima *Callback/Webhook* dari sistem XenithPay.
 
 ---
@@ -42,11 +42,11 @@ WHERE key IN ('xenithpayEndpoint', 'n8nURL', 'homepageURL');
 1. Buka n8n dan buat *Workflow* baru.
 2. Import file `Xenithpay Template.json`.
 3. Buat dan sambungkan *Credentials* berikut pada node yang membutuhkannya:
-   - `Xenith-Api-Key`: Kredensial *HTTP Header Auth* (Header autentikasi API XenithPay).
-   - `Xenith-Secret-Key`: Kredensial *Crypto HMAC* (Untuk memverifikasi signature Pay-In & Pay-Out).
-   - `xenith-web-signature-secret`: Kredensial *Crypto HMAC* (Untuk memverifikasi validitas Callback dari XenithPay).
-   - `database`: Kredensial *PostgreSQL* untuk menyambung ke database Anda.
-   - `SMTP`: Kredensial *SMTP* untuk mengirim email.
+   - `Xenith-Api-Key`: *Credential* *HTTP Header Auth* (Header autentikasi API XenithPay).
+   - `Xenith-Secret-Key`: *Credential* *Crypto HMAC* (Untuk memverifikasi signature Pay-In & Pay-Out).
+   - `xenith-web-signature-secret`: *Credential* *Crypto HMAC* (Untuk memverifikasi validitas Callback dari XenithPay).
+   - `database`: *Credential* *PostgreSQL* untuk menyambung ke database Anda.
+   - `SMTP`: *Credential* *SMTP* untuk mengirim email.
 
 ### 4. Aktifkan Workflow
 Aktifkan (*Activate*) toggle workflow di pojok kanan atas n8n.
@@ -103,5 +103,5 @@ Jika Anda sudah selesai melakukan pengujian di *Sandbox* dan siap beralih ke *Pr
 
 ## 💡 Best Practices & Keamanan
 - Pastikan `referenceCode` pada tagihan (*Invoice*) maupun *Payout* bersifat unik. Sistem akan menolak jika mendeteksi ID duplikat.
-- Jangan pernah melakukan *commit* atau menyimpan Kredensial API di dalam kode source (selalu manfaatkan fitur *Credentials* milik n8n).
+- Jangan pernah melakukan *commit* atau menyimpan *Credential* API di dalam kode source (selalu manfaatkan fitur *Credentials* milik n8n).
 - Pada saat production, pastikan koneksi PostgreSQL Anda terlindungi dengan aturan *firewall* yang baik.
