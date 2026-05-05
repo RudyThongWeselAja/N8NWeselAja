@@ -65,7 +65,8 @@ Buat *Credentials* berikut dengan nama **persis** seperti di bawah ini:
    - **Tipe:** PostgreSQL
    - **Kegunaan:** Menyambung ke database Anda
    
-   ![Credential Database](images/credential-database.png)
+   ![Credential Database 1](images/credential-database1.png)
+   ![Credential Database 2](images/credential-database2.png)
 
 5. **`SMTP`**
    - **Tipe:** SMTP
