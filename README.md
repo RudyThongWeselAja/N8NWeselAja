@@ -38,21 +38,31 @@ END
 WHERE key IN ('xenithpayEndpoint', 'n8nURL', 'homepageURL');
 ```
 
-### 3. Import Workflow di n8n
+### 3. Buat Credentials di n8n
+**Sebelum** meng-import workflow, buat semua *Credentials* terlebih dahulu. Akses menu **Credentials** melalui sidebar kiri n8n atau tab *Credentials* di halaman *Personal*.
+
+![Contoh Halaman Credentials n8n](images/credentials-page.png)
+
+Buat *Credentials* berikut dengan nama **persis** seperti di bawah ini:
+
+*(Penting: Penamaan credential harus sama persis agar saat import workflow, n8n otomatis menghubungkan credential ke semua node yang membutuhkannya. Lihat contoh gambar di bawah untuk posisi penamaan)*
+
+![Contoh Penamaan Credential](images/credential-example.png)
+
+| Nama Credential | Tipe | Kegunaan |
+|---|---|---|
+| `Xenith-Api-Key` | HTTP Header Auth | Header autentikasi API XenithPay |
+| `Xenith-Secret-Key` | Crypto HMAC | Memverifikasi signature Pay-In & Pay-Out |
+| `xenith-web-signature-secret` | Crypto HMAC | Memverifikasi validitas Callback dari XenithPay |
+| `database` | PostgreSQL | Menyambung ke database Anda |
+| `SMTP` | SMTP | Mengirim email notifikasi |
+
+### 4. Import Workflow di n8n
 1. Buka n8n dan buat *Workflow* baru.
 2. Import file `Xenithpay Template.json`.
-3. Buat dan sambungkan *Credentials* berikut pada node yang membutuhkannya:
+3. n8n akan **otomatis menghubungkan** semua *Credentials* yang sudah dibuat di langkah sebelumnya ke setiap node yang membutuhkannya.
 
-   *(Penting: Pastikan Anda memberi nama Credential persis seperti daftar di bawah ini agar otomatis terhubung. Lihat contoh gambar di bawah untuk posisi penamaan)*
-   
-   ![Contoh Penamaan Credential](images/credential-example.png)
-   - `Xenith-Api-Key`: *Credential* *HTTP Header Auth* (Header autentikasi API XenithPay).
-   - `Xenith-Secret-Key`: *Credential* *Crypto HMAC* (Untuk memverifikasi signature Pay-In & Pay-Out).
-   - `xenith-web-signature-secret`: *Credential* *Crypto HMAC* (Untuk memverifikasi validitas Callback dari XenithPay).
-   - `database`: *Credential* *PostgreSQL* untuk menyambung ke database Anda.
-   - `SMTP`: *Credential* *SMTP* untuk mengirim email.
-
-### 4. Publish Workflow
+### 5. Publish Workflow
 Aktifkan workflow dengan mengklik tombol **Publish** di pojok kanan atas n8n.
 **Penting:** Selalu gunakan URL webhook utama (`/webhook/...`), bukan test URL (`/webhook-test/...`) saat menerima callback otomatis dari XenithPay.
 
