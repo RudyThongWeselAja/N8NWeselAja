@@ -52,8 +52,8 @@ WHERE key IN ('xenithpayEndpoint', 'n8nURL', 'homepageURL');
    - `database`: *Credential* *PostgreSQL* untuk menyambung ke database Anda.
    - `SMTP`: *Credential* *SMTP* untuk mengirim email.
 
-### 4. Aktifkan Workflow
-Aktifkan (*Activate*) toggle workflow di pojok kanan atas n8n.
+### 4. Publish Workflow
+Aktifkan workflow dengan mengklik tombol **Publish** di pojok kanan atas n8n.
 **Penting:** Selalu gunakan URL webhook utama (`/webhook/...`), bukan test URL (`/webhook-test/...`) saat menerima callback otomatis dari XenithPay.
 
 ---
