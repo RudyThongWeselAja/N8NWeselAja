@@ -65,6 +65,11 @@ Buat *Credentials* berikut dengan nama **persis** seperti di bawah ini:
 2. **`Xenith-Api-Key`**
    - **Tipe:** HTTP Header Auth
    - **Kegunaan:** Header autentikasi API XenithPay
+   - **Yang harus diisi:**
+     - **Name:** Masukkan `x-api-key` (atau sesuai dengan spesifikasi header XenithPay)
+     - **Value:** Masukkan API Key dari dashboard XenithPay Anda
+   
+   ![Credential Xenith API Key](images/credential-xenith-api-key.png)
 
 3. **`Xenith-Secret-Key`**
    - **Tipe:** Crypto HMAC
