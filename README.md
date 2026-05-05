@@ -7,7 +7,7 @@ Template n8n ini menyediakan integrasi lengkap dengan **XenithPay** untuk mempro
 ## 📋 Prasyarat
 
 Sebelum memulai, pastikan Anda memiliki:
-1. **n8n (Versi Terbaru)**: Pastikan Anda menggunakan n8n versi terbaru. Hal ini diwajibkan karena template ini menggunakan sistem *credential* terbaru dari n8n yang jauh lebih praktis. Anda cukup mengatur *Credentials* sekali saja tanpa perlu repot melakukan setup manual pada setiap *node*.
+1. **n8n (Fresh Install / Instance Baru)**: Disarankan menggunakan instance n8n yang baru (belum ada project dan *credential* sebelumnya). Hal ini karena saat Anda meng-import template, n8n akan secara otomatis mengenali dan mempermudah pemetaan *Credentials* ke semua node, sehingga Anda tidak perlu melakukan setup manual satu per satu pada setiap *node*.
 2. **PostgreSQL**: Database untuk menyimpan riwayat transaksi, referensi channel, dan variabel environment workflow.
 3. **SMTP**: Konfigurasi email aktif untuk mengirim notifikasi dan invoice.
 4. **Akun XenithPay**: *Credential* API Key dan Secret (untuk Sandbox atau Production).
