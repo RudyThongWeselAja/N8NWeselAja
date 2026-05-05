@@ -42,6 +42,10 @@ WHERE key IN ('xenithpayEndpoint', 'n8nURL', 'homepageURL');
 1. Buka n8n dan buat *Workflow* baru.
 2. Import file `Xenithpay Template.json`.
 3. Buat dan sambungkan *Credentials* berikut pada node yang membutuhkannya:
+
+   *(Penting: Pastikan Anda memberi nama Credential persis seperti daftar di bawah ini agar otomatis terhubung. Lihat contoh gambar di bawah untuk posisi penamaan)*
+   
+   ![Contoh Penamaan Credential](images/credential-example.png)
    - `Xenith-Api-Key`: *Credential* *HTTP Header Auth* (Header autentikasi API XenithPay).
    - `Xenith-Secret-Key`: *Credential* *Crypto HMAC* (Untuk memverifikasi signature Pay-In & Pay-Out).
    - `xenith-web-signature-secret`: *Credential* *Crypto HMAC* (Untuk memverifikasi validitas Callback dari XenithPay).
